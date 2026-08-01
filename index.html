@@ -3,513 +3,85 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>영어 단어 시험</title>
+  <title>Vocabulary Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      font-family: Arial, "Noto Sans KR", sans-serif;
-      background: #f4f6f8;
-      color: #222;
-    }
-
-    .container {
-      width: min(92%, 680px);
-      margin: 40px auto;
-    }
-
-    .card {
-      background: white;
-      border-radius: 18px;
-      padding: 28px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    }
-
-    h1, h2 {
-      margin-top: 0;
-      text-align: center;
-    }
-
-    .description {
-      text-align: center;
-      color: #666;
-      margin-bottom: 24px;
-      line-height: 1.6;
-    }
-
-    .form-group {
-      margin-bottom: 18px;
-    }
-
-    label {
-      display: block;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    select,
-    input[type="number"],
-    input[type="text"] {
-      width: 100%;
-      padding: 13px 14px;
-      border: 1px solid #d5d9dd;
-      border-radius: 10px;
-      font-size: 16px;
-    }
-
-    button {
-      border: 0;
-      border-radius: 10px;
-      padding: 13px 18px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .primary-btn {
-      width: 100%;
-      background: #222;
-      color: white;
-    }
-
-    .secondary-btn {
-      background: #e9ecef;
-      color: #222;
-    }
-
-    .danger-btn {
-      background: #fff0f0;
-      color: #b42318;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    .progress {
-      color: #666;
-      font-size: 14px;
-      margin-bottom: 10px;
-      text-align: center;
-    }
-
-    .question-word {
-      font-size: 38px;
-      font-weight: 800;
-      text-align: center;
-      margin: 28px 0;
-      word-break: break-word;
-    }
-
-    .choices {
-      display: grid;
-      gap: 12px;
-    }
-
-    .choice-btn {
-      width: 100%;
-      background: #f7f8fa;
-      border: 1px solid #dfe3e8;
-      color: #222;
-      text-align: left;
-    }
-
-    .choice-btn.selected {
-      background: #222;
-      color: white;
-      border-color: #222;
-    }
-
-    .navigation {
-      display: flex;
-      gap: 10px;
-      margin-top: 22px;
-    }
-
-    .navigation button {
-      flex: 1;
-    }
-
-    .score {
-      text-align: center;
-      font-size: 32px;
-      font-weight: 800;
-      margin: 20px 0;
-    }
-
-    .answer-item {
-      border: 1px solid #e2e5e9;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 12px;
-    }
-
-    .answer-item.correct {
-      border-left: 6px solid #1f9d55;
-    }
-
-    .answer-item.wrong {
-      border-left: 6px solid #d64545;
-    }
-
-    .answer-item p {
-      margin: 6px 0;
-      line-height: 1.5;
-    }
-
-    .result-actions {
-      display: grid;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .word-list {
-      background: #f7f8fa;
-      padding: 14px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      line-height: 1.8;
-    }
-
-    @media (max-width: 480px) {
-      .container {
-        margin: 18px auto;
-      }
-
-      .card {
-        padding: 20px;
-        border-radius: 14px;
-      }
-
-      .question-word {
-        font-size: 31px;
-      }
-
-      .navigation {
-        flex-direction: column;
-      }
-    }
+    *{box-sizing:border-box} :root{--bg:#f3f5f7;--card:#fff;--text:#17191c;--muted:#6b7280;--line:#e2e6ea;--primary:#1f2328;--soft:#eef0f2;--danger:#b42318;--success:#16803c}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,"Noto Sans KR",sans-serif} button,input,select{font:inherit} button{cursor:pointer}
+    .app{width:min(94%,760px);margin:28px auto}.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.brand{font-size:21px;font-weight:800}.home-btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 13px;font-weight:700}
+    .card{background:var(--card);border-radius:18px;padding:26px;box-shadow:0 10px 28px rgba(0,0,0,.07)}.hidden{display:none!important}h1,h2{margin:0 0 18px}h1{text-align:center;font-size:30px}h2{font-size:24px}
+    .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px}.menu-btn{min-height:150px;border:1px solid var(--line);border-radius:16px;background:#fff;padding:22px;text-align:left;transition:.15s}.menu-btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.06)}.menu-title{display:block;font-size:23px;font-weight:800;margin-bottom:9px}.menu-desc{color:var(--muted);line-height:1.55;font-size:14px}
+    .section-note{color:var(--muted);font-size:14px;line-height:1.6;margin:-6px 0 18px}.upload-box{border:1px dashed #aeb5bd;border-radius:14px;padding:18px;background:#fafbfc;margin-bottom:18px}.upload-row{display:flex;gap:10px;flex-wrap:wrap}input[type=file]{flex:1;min-width:220px;padding:11px;border:1px solid var(--line);background:#fff;border-radius:10px}
+    .primary-btn,.secondary-btn,.danger-btn{border:0;border-radius:10px;padding:12px 16px;font-weight:800}.primary-btn{background:var(--primary);color:#fff}.secondary-btn{background:var(--soft)}.danger-btn{background:#fff0f0;color:var(--danger)}.full{width:100%}
+    .status{margin-top:12px;min-height:21px;font-size:14px;color:var(--muted)}.status.success{color:var(--success)}.status.error{color:var(--danger)}.vocab-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:18px 0 12px}.word-count{font-weight:800}.word-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}table{width:100%;border-collapse:collapse;min-width:420px}th,td{text-align:left;padding:13px 15px;border-bottom:1px solid var(--line)}th{background:#f7f8fa;font-size:14px}tr:last-child td{border-bottom:0}
+    .form-group{margin-bottom:18px}label{display:block;font-weight:800;margin-bottom:8px}input[type=number],input[type=text],select{width:100%;padding:13px 14px;border:1px solid #d5d9dd;border-radius:10px;background:#fff;font-size:16px}
+    .progress{text-align:center;color:var(--muted);font-size:14px;font-weight:700}.question-word{text-align:center;font-size:39px;font-weight:900;margin:31px 0;word-break:break-word}.choices{display:grid;gap:11px}.choice-btn{width:100%;border:1px solid var(--line);border-radius:11px;background:#f8f9fa;padding:14px;text-align:left;font-weight:700}.choice-btn.selected{color:#fff;background:var(--primary);border-color:var(--primary)}.navigation{display:flex;gap:10px;margin-top:22px}.navigation button{flex:1}.score{text-align:center;font-size:34px;font-weight:900;margin:22px 0}.answer-item{border:1px solid var(--line);border-radius:11px;padding:15px;margin-bottom:11px}.answer-item.correct{border-left:6px solid var(--success)}.answer-item.wrong{border-left:6px solid #d64545}.answer-item p{margin:5px 0;line-height:1.5}.result-actions{display:grid;gap:10px;margin-top:18px}
+    @media(max-width:560px){.app{margin:16px auto}.card{padding:20px;border-radius:14px}.menu-grid{grid-template-columns:1fr}.menu-btn{min-height:120px}.question-word{font-size:32px}.navigation{flex-direction:column}.vocab-toolbar{align-items:flex-start;flex-direction:column}}
   </style>
 </head>
 <body>
-  <main class="container">
-
-    <section id="setupPage" class="card">
-      <h1>영어 단어 시험</h1>
-      <p class="description">
-        무작위로 단어를 뽑아 객관식 또는 주관식 시험을 볼 수 있습니다.
-      </p>
-
-      <div class="word-list">
-        <strong>현재 단어장</strong><br />
-        Apple — 사과<br />
-        Banana — 바나나<br />
-        Fig — 무화과<br />
-        Car — 차
-      </div>
-
-      <div class="form-group">
-        <label for="questionCount">문제 수</label>
-        <input id="questionCount" type="number" min="1" max="4" value="4" />
-      </div>
-
-      <div class="form-group">
-        <label for="quizType">시험 유형</label>
-        <select id="quizType">
-          <option value="multiple">객관식</option>
-          <option value="typing">주관식</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="direction">출제 방향</label>
-        <select id="direction">
-          <option value="engToKor">영어 → 한글</option>
-          <option value="korToEng">한글 → 영어</option>
-        </select>
-      </div>
-
-      <button id="startBtn" class="primary-btn">시험 시작</button>
-    </section>
-
-    <section id="quizPage" class="card hidden">
-      <div id="progress" class="progress"></div>
-      <div id="questionWord" class="question-word"></div>
-
-      <div id="multipleChoiceArea" class="choices"></div>
-
-      <div id="typingArea" class="hidden">
-        <input
-          id="typingAnswer"
-          type="text"
-          placeholder="정답을 입력하세요"
-          autocomplete="off"
-        />
-      </div>
-
-      <div class="navigation">
-        <button id="prevBtn" class="secondary-btn">이전 문제</button>
-        <button id="nextBtn" class="primary-btn">다음 문제</button>
-      </div>
-    </section>
-
-    <section id="resultPage" class="card hidden">
-      <h2>시험 결과</h2>
-      <div id="score" class="score"></div>
-      <div id="answerSheet"></div>
-
-      <div class="result-actions">
-        <button id="retryWrongBtn" class="danger-btn">오답만 다시 풀기</button>
-        <button id="restartBtn" class="primary-btn">새 시험 시작</button>
-      </div>
-    </section>
-
-  </main>
-
-  <script>
-    const wordList = [
-      { english: "Apple", korean: "사과" },
-      { english: "Banana", korean: "바나나" },
-      { english: "Fig", korean: "무화과" },
-      { english: "Car", korean: "차" }
-    ];
-
-    const setupPage = document.getElementById("setupPage");
-    const quizPage = document.getElementById("quizPage");
-    const resultPage = document.getElementById("resultPage");
-
-    const questionCountInput = document.getElementById("questionCount");
-    const quizTypeSelect = document.getElementById("quizType");
-    const directionSelect = document.getElementById("direction");
-
-    const startBtn = document.getElementById("startBtn");
-    const prevBtn = document.getElementById("prevBtn");
-    const nextBtn = document.getElementById("nextBtn");
-
-    const progress = document.getElementById("progress");
-    const questionWord = document.getElementById("questionWord");
-    const multipleChoiceArea = document.getElementById("multipleChoiceArea");
-    const typingArea = document.getElementById("typingArea");
-    const typingAnswer = document.getElementById("typingAnswer");
-
-    const score = document.getElementById("score");
-    const answerSheet = document.getElementById("answerSheet");
-    const retryWrongBtn = document.getElementById("retryWrongBtn");
-    const restartBtn = document.getElementById("restartBtn");
-
-    let questions = [];
-    let currentIndex = 0;
-    let answers = [];
-    let quizType = "multiple";
-    let direction = "engToKor";
-
-    function shuffleArray(array) {
-      const copied = [...array];
-
-      for (let i = copied.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [copied[i], copied[j]] = [copied[j], copied[i]];
-      }
-
-      return copied;
-    }
-
-    function normalizeText(text) {
-      return String(text).trim().toLowerCase().replace(/\s+/g, "");
-    }
-
-    function getQuestionText(word) {
-      return direction === "engToKor" ? word.english : word.korean;
-    }
-
-    function getCorrectAnswer(word) {
-      return direction === "engToKor" ? word.korean : word.english;
-    }
-
-    function createChoices(currentWord) {
-      const correctAnswer = getCorrectAnswer(currentWord);
-
-      const wrongAnswers = wordList
-        .filter(word => word.english !== currentWord.english)
-        .map(word => getCorrectAnswer(word));
-
-      return shuffleArray([
-        correctAnswer,
-        ...shuffleArray(wrongAnswers).slice(0, 3)
-      ]);
-    }
-
-    function showPage(page) {
-      setupPage.classList.add("hidden");
-      quizPage.classList.add("hidden");
-      resultPage.classList.add("hidden");
-      page.classList.remove("hidden");
-    }
-
-    function startQuiz(customQuestions = null) {
-      quizType = quizTypeSelect.value;
-      direction = directionSelect.value;
-
-      const requestedCount = Number(questionCountInput.value);
-
-      if (
-        !Number.isInteger(requestedCount) ||
-        requestedCount < 1 ||
-        requestedCount > wordList.length
-      ) {
-        alert(`문제 수는 1개부터 ${wordList.length}개 사이로 입력하세요.`);
-        return;
-      }
-
-      questions = customQuestions
-        ? [...customQuestions]
-        : shuffleArray(wordList).slice(0, requestedCount);
-
-      currentIndex = 0;
-      answers = new Array(questions.length).fill("");
-
-      showPage(quizPage);
-      renderQuestion();
-    }
-
-    function saveCurrentTypingAnswer() {
-      if (quizType === "typing") {
-        answers[currentIndex] = typingAnswer.value;
-      }
-    }
-
-    function renderQuestion() {
-      const currentQuestion = questions[currentIndex];
-
-      progress.textContent = `${currentIndex + 1} / ${questions.length}`;
-      questionWord.textContent = getQuestionText(currentQuestion);
-
-      prevBtn.disabled = currentIndex === 0;
-      nextBtn.textContent =
-        currentIndex === questions.length - 1 ? "제출하기" : "다음 문제";
-
-      if (quizType === "multiple") {
-        multipleChoiceArea.classList.remove("hidden");
-        typingArea.classList.add("hidden");
-        multipleChoiceArea.innerHTML = "";
-
-        const choices = createChoices(currentQuestion);
-
-        choices.forEach(choice => {
-          const button = document.createElement("button");
-          button.type = "button";
-          button.className = "choice-btn";
-          button.textContent = choice;
-
-          if (answers[currentIndex] === choice) {
-            button.classList.add("selected");
-          }
-
-          button.addEventListener("click", () => {
-            answers[currentIndex] = choice;
-
-            document
-              .querySelectorAll(".choice-btn")
-              .forEach(btn => btn.classList.remove("selected"));
-
-            button.classList.add("selected");
-          });
-
-          multipleChoiceArea.appendChild(button);
-        });
-      } else {
-        multipleChoiceArea.classList.add("hidden");
-        typingArea.classList.remove("hidden");
-        typingAnswer.value = answers[currentIndex] || "";
-        setTimeout(() => typingAnswer.focus(), 50);
-      }
-    }
-
-    function submitQuiz() {
-      saveCurrentTypingAnswer();
-
-      const resultData = questions.map((word, index) => {
-        const userAnswer = answers[index] || "";
-        const correctAnswer = getCorrectAnswer(word);
-
-        return {
-          word,
-          question: getQuestionText(word),
-          userAnswer,
-          correctAnswer,
-          isCorrect:
-            normalizeText(userAnswer) === normalizeText(correctAnswer)
-        };
-      });
-
-      const correctCount = resultData.filter(item => item.isCorrect).length;
-      score.textContent = `${correctCount} / ${questions.length}`;
-
-      answerSheet.innerHTML = "";
-
-      resultData.forEach((item, index) => {
-        const box = document.createElement("div");
-        box.className = `answer-item ${item.isCorrect ? "correct" : "wrong"}`;
-
-        box.innerHTML = `
-          <p><strong>${index + 1}. ${item.question}</strong></p>
-          <p>내 답: ${item.userAnswer || "미응답"}</p>
-          <p>정답: ${item.correctAnswer}</p>
-          <p>결과: ${item.isCorrect ? "정답" : "오답"}</p>
-        `;
-
-        answerSheet.appendChild(box);
-      });
-
-      const wrongWords = resultData
-        .filter(item => !item.isCorrect)
-        .map(item => item.word);
-
-      retryWrongBtn.disabled = wrongWords.length === 0;
-      retryWrongBtn.textContent =
-        wrongWords.length === 0
-          ? "모든 문제를 맞혔습니다"
-          : `오답 ${wrongWords.length}개 다시 풀기`;
-
-      retryWrongBtn.onclick = () => startQuiz(wrongWords);
-
-      showPage(resultPage);
-    }
-
-    startBtn.addEventListener("click", () => startQuiz());
-
-    prevBtn.addEventListener("click", () => {
-      saveCurrentTypingAnswer();
-
-      if (currentIndex > 0) {
-        currentIndex--;
-        renderQuestion();
-      }
-    });
-
-    nextBtn.addEventListener("click", () => {
-      saveCurrentTypingAnswer();
-
-      if (currentIndex < questions.length - 1) {
-        currentIndex++;
-        renderQuestion();
-      } else {
-        submitQuiz();
-      }
-    });
-
-    typingAnswer.addEventListener("keydown", event => {
-      if (event.key === "Enter") {
-        nextBtn.click();
-      }
-    });
-
-    restartBtn.addEventListener("click", () => {
-      showPage(setupPage);
-    });
-  </script>
+<main class="app">
+  <div class="topbar"><div class="brand">Vocabulary Test</div><button id="homeBtn" class="home-btn hidden" type="button">Home</button></div>
+
+  <section id="homePage" class="card">
+    <h1>Vocabulary Test</h1>
+    <div class="menu-grid">
+      <button id="openVocabularyBtn" class="menu-btn" type="button"><span class="menu-title">Vocabulary</span><span class="menu-desc">Excel 단어장을 불러오고 현재 등록된 단어를 확인합니다.</span></button>
+      <button id="openTestBtn" class="menu-btn" type="button"><span class="menu-title">Test</span><span class="menu-desc">문제 수, 시험 유형, 출제 방향을 설정하고 시험을 시작합니다.</span></button>
+    </div>
+  </section>
+
+  <section id="vocabularyPage" class="card hidden">
+    <h2>Vocabulary</h2>
+    <p class="section-note">Excel 첫 번째 행에 <strong>영어단어</strong>, <strong>한글 뜻</strong>을 입력하세요. 열 제목이 달라도 첫 번째 열과 두 번째 열을 자동으로 읽습니다.</p>
+    <div class="upload-box"><div class="upload-row"><input id="excelFile" type="file" accept=".xlsx,.xls,.csv" /><button id="importExcelBtn" class="primary-btn" type="button">Excel 불러오기</button></div><div id="uploadStatus" class="status"></div></div>
+    <div class="vocab-toolbar"><span id="wordCount" class="word-count">0 words</span><button id="resetWordsBtn" class="danger-btn" type="button">기본 단어장으로 초기화</button></div>
+    <div class="word-table-wrap"><table><thead><tr><th>No.</th><th>English</th><th>한글 뜻</th></tr></thead><tbody id="vocabTableBody"></tbody></table></div>
+  </section>
+
+  <section id="testSetupPage" class="card hidden">
+    <h2>Test</h2>
+    <div class="form-group"><label for="questionCount">문제 수</label><input id="questionCount" type="number" min="1" value="4" /></div>
+    <div class="form-group"><label for="quizType">시험 유형</label><select id="quizType"><option value="multiple">객관식</option><option value="typing">주관식</option></select></div>
+    <div class="form-group"><label for="direction">출제 방향</label><select id="direction"><option value="engToKor">영어 → 한글</option><option value="korToEng">한글 → 영어</option></select></div>
+    <button id="startBtn" class="primary-btn full" type="button">시험 시작</button><div id="testStatus" class="status"></div>
+  </section>
+
+  <section id="quizPage" class="card hidden">
+    <div id="progress" class="progress"></div><div id="questionWord" class="question-word"></div><div id="multipleChoiceArea" class="choices"></div>
+    <div id="typingArea" class="hidden"><input id="typingAnswer" type="text" placeholder="정답을 입력하세요" autocomplete="off" /></div>
+    <div class="navigation"><button id="prevBtn" class="secondary-btn" type="button">이전 문제</button><button id="nextBtn" class="primary-btn" type="button">다음 문제</button></div>
+  </section>
+
+  <section id="resultPage" class="card hidden">
+    <h2>Result</h2><div id="score" class="score"></div><div id="answerSheet"></div>
+    <div class="result-actions"><button id="retryWrongBtn" class="danger-btn" type="button">오답만 다시 풀기</button><button id="newTestBtn" class="primary-btn" type="button">새 시험 설정</button></div>
+  </section>
+</main>
+
+<script>
+const DEFAULT_WORDS=[{english:"Apple",korean:"사과"},{english:"Banana",korean:"바나나"},{english:"Fig",korean:"무화과"},{english:"Car",korean:"차"}];
+const STORAGE_KEY="vocabularyTestWordsV2";
+let wordList=loadWords(),questions=[],currentIndex=0,answers=[],choiceSets=[],quizType="multiple",direction="engToKor";
+const $=id=>document.getElementById(id);
+const pages=[$("homePage"),$("vocabularyPage"),$("testSetupPage"),$("quizPage"),$("resultPage")];
+function loadWords(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));return Array.isArray(saved)&&saved.length?saved:[...DEFAULT_WORDS]}catch{return [...DEFAULT_WORDS]}}
+function saveWords(){localStorage.setItem(STORAGE_KEY,JSON.stringify(wordList))}
+function showPage(page){pages.forEach(p=>p.classList.add("hidden"));page.classList.remove("hidden");$("homeBtn").classList.toggle("hidden",page===$("homePage"));window.scrollTo({top:0,behavior:"smooth"})}
+function shuffleArray(a){const c=[...a];for(let i=c.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[c[i],c[j]]=[c[j],c[i]]}return c}
+function normalizeText(t){return String(t??"").trim().toLowerCase().replace(/\s+/g,"")}
+function escapeHtml(t){const d=document.createElement("div");d.textContent=String(t??"");return d.innerHTML}
+function renderVocabulary(){const body=$("vocabTableBody");body.innerHTML="";wordList.forEach((w,i)=>{const r=document.createElement("tr");r.innerHTML=`<td>${i+1}</td><td>${escapeHtml(w.english)}</td><td>${escapeHtml(w.korean)}</td>`;body.appendChild(r)});$("wordCount").textContent=`${wordList.length} words`;$("questionCount").max=Math.max(1,wordList.length);if(Number($("questionCount").value)>wordList.length)$("questionCount").value=wordList.length}
+function parseExcelRows(rows){if(!Array.isArray(rows)||!rows.length)return[];const cleaned=rows.filter(r=>Array.isArray(r)&&r.some(c=>String(c??"").trim()!==""));if(!cleaned.length)return[];const first=cleaned[0].map(c=>String(c??"").trim().toLowerCase().replace(/\s+/g,""));const eng=["영어단어","영어","english","word","vocabulary"],kor=["한글뜻","한글","뜻","korean","meaning"];const hasHeader=eng.includes(first[0])||kor.includes(first[1]);const data=hasHeader?cleaned.slice(1):cleaned;const parsed=data.map(r=>({english:String(r[0]??"").trim(),korean:String(r[1]??"").trim()})).filter(w=>w.english&&w.korean);const unique=[],seen=new Set();parsed.forEach(w=>{const k=`${normalizeText(w.english)}|${normalizeText(w.korean)}`;if(!seen.has(k)){seen.add(k);unique.push(w)}});return unique}
+async function importExcel(){const status=$("uploadStatus");status.className="status";status.textContent="";const file=$("excelFile").files[0];if(!file){status.className="status error";status.textContent="Excel 파일을 먼저 선택하세요.";return}if(typeof XLSX==="undefined"){status.className="status error";status.textContent="Excel 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.";return}try{const buffer=await file.arrayBuffer();const wb=XLSX.read(buffer,{type:"array"});const sheet=wb.Sheets[wb.SheetNames[0]];const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:""});const imported=parseExcelRows(rows);if(!imported.length)throw new Error("empty");wordList=imported;saveWords();renderVocabulary();status.className="status success";status.textContent=`${imported.length}개 단어를 불러왔습니다. 이 기기의 브라우저에 저장되었습니다.`}catch(e){status.className="status error";status.textContent="파일을 읽지 못했습니다. 첫 번째 열은 영어, 두 번째 열은 한글 뜻인지 확인하세요.";console.error(e)}}
+function getQuestionText(w){return direction==="engToKor"?w.english:w.korean}function getCorrectAnswer(w){return direction==="engToKor"?w.korean:w.english}
+function buildChoiceSet(current){const correct=getCorrectAnswer(current);const wrong=shuffleArray(wordList.filter(w=>normalizeText(w.english)!==normalizeText(current.english)).map(getCorrectAnswer).filter(a=>normalizeText(a)!==normalizeText(correct)));const unique=[],seen=new Set();wrong.forEach(a=>{const k=normalizeText(a);if(!seen.has(k)){seen.add(k);unique.push(a)}});return shuffleArray([correct,...unique.slice(0,3)])}
+function startQuiz(custom=null){const status=$("testStatus");status.className="status";status.textContent="";if(!wordList.length){status.className="status error";status.textContent="Vocabulary에서 단어장을 먼저 불러오세요.";return}quizType=$("quizType").value;direction=$("direction").value;const count=Number($("questionCount").value);if(!Number.isInteger(count)||count<1||count>wordList.length){status.className="status error";status.textContent=`문제 수는 1개부터 ${wordList.length}개 사이로 입력하세요.`;return}if(quizType==="multiple"&&wordList.length<2){status.className="status error";status.textContent="객관식 시험에는 최소 2개 이상의 단어가 필요합니다.";return}questions=custom?shuffleArray(custom):shuffleArray(wordList).slice(0,count);currentIndex=0;answers=new Array(questions.length).fill("");choiceSets=questions.map(w=>quizType==="multiple"?buildChoiceSet(w):[]);showPage($("quizPage"));renderQuestion()}
+function saveTyping(){if(quizType==="typing")answers[currentIndex]=$("typingAnswer").value}
+function renderQuestion(){const q=questions[currentIndex];$("progress").textContent=`${currentIndex+1} / ${questions.length}`;$("questionWord").textContent=getQuestionText(q);$("prevBtn").disabled=currentIndex===0;$("nextBtn").textContent=currentIndex===questions.length-1?"제출하기":"다음 문제";if(quizType==="multiple"){$("multipleChoiceArea").classList.remove("hidden");$("typingArea").classList.add("hidden");const area=$("multipleChoiceArea");area.innerHTML="";choiceSets[currentIndex].forEach(choice=>{const b=document.createElement("button");b.type="button";b.className="choice-btn";b.textContent=choice;if(answers[currentIndex]===choice)b.classList.add("selected");b.onclick=()=>{answers[currentIndex]=choice;area.querySelectorAll(".choice-btn").forEach(x=>x.classList.remove("selected"));b.classList.add("selected")};area.appendChild(b)})}else{$("multipleChoiceArea").classList.add("hidden");$("typingArea").classList.remove("hidden");$("typingAnswer").value=answers[currentIndex]||"";setTimeout(()=>$("typingAnswer").focus(),30)}}
+function submitQuiz(){saveTyping();const data=questions.map((w,i)=>{const ua=answers[i]||"",ca=getCorrectAnswer(w);return{word:w,question:getQuestionText(w),userAnswer:ua,correctAnswer:ca,isCorrect:normalizeText(ua)===normalizeText(ca)}});$("score").textContent=`${data.filter(x=>x.isCorrect).length} / ${questions.length}`;const sheet=$("answerSheet");sheet.innerHTML="";data.forEach((x,i)=>{const box=document.createElement("div");box.className=`answer-item ${x.isCorrect?"correct":"wrong"}`;box.innerHTML=`<p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p><p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p><p>정답: ${escapeHtml(x.correctAnswer)}</p><p>결과: ${x.isCorrect?"정답":"오답"}</p>`;sheet.appendChild(box)});const wrong=data.filter(x=>!x.isCorrect).map(x=>x.word);$("retryWrongBtn").disabled=wrong.length===0;$("retryWrongBtn").textContent=wrong.length===0?"모든 문제를 맞혔습니다":`오답 ${wrong.length}개 다시 풀기`;$("retryWrongBtn").onclick=()=>wrong.length&&startQuiz(wrong);showPage($("resultPage"))}
+$("homeBtn").onclick=()=>showPage($("homePage"));$("openVocabularyBtn").onclick=()=>{renderVocabulary();showPage($("vocabularyPage"))};$("openTestBtn").onclick=()=>{renderVocabulary();$("testStatus").textContent="";showPage($("testSetupPage"))};$("importExcelBtn").onclick=importExcel;$("resetWordsBtn").onclick=()=>{if(confirm("현재 단어장을 지우고 기본 단어 4개로 초기화할까요?")){wordList=[...DEFAULT_WORDS];saveWords();renderVocabulary();$("uploadStatus").className="status success";$("uploadStatus").textContent="기본 단어장으로 초기화했습니다."}};$("startBtn").onclick=()=>startQuiz();$("prevBtn").onclick=()=>{saveTyping();if(currentIndex>0){currentIndex--;renderQuestion()}};$("nextBtn").onclick=()=>{saveTyping();if(currentIndex<questions.length-1){currentIndex++;renderQuestion()}else submitQuiz()};$("typingAnswer").onkeydown=e=>{if(e.key==="Enter")$("nextBtn").click()};$("newTestBtn").onclick=()=>showPage($("testSetupPage"));
+renderVocabulary();
+</script>
 </body>
 </html>
