@@ -4,10 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>생존영어</title>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     *{box-sizing:border-box}
-    :root{--bg:#f3f5f7;--card:#fff;--text:#17191c;--muted:#6b7280;--line:#e2e6ea;--primary:#1f2328;--soft:#eef0f2;--danger:#b42318;--success:#16803c}
+    :root{--bg:#f3f5f7;--card:#fff;--text:#17191c;--muted:#6b7280;--line:#e2e6ea;--primary:#1f2328;--soft:#eef0f2;--danger:#b42318;--success:#16803c;--focus:#2563eb}
     body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,"Noto Sans KR",sans-serif}
     button,input,select{font:inherit}
     button{cursor:pointer}
@@ -26,6 +25,7 @@
     .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px}
     .menu-btn{min-height:146px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:22px;text-align:left;transition:.15s}
     .menu-btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.06)}
+    .menu-btn:focus-visible,.home-btn:focus-visible,.admin-btn:focus-visible,.primary-btn:focus-visible,.secondary-btn:focus-visible,.danger-btn:focus-visible,.choice-btn:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}
     .menu-title{display:block;font-size:23px;font-weight:800;margin-bottom:9px}
     .menu-desc{color:var(--muted);line-height:1.55;font-size:14px}
     .section-note{color:var(--muted);font-size:14px;line-height:1.6;margin:-6px 0 18px}
@@ -49,7 +49,7 @@
     tr:last-child td{border-bottom:0}
     .form-group{margin-bottom:18px}
     label{display:block;font-weight:800;margin-bottom:8px}
-    input[type=number],input[type=text],input[type=password],select{width:100%;padding:13px 14px;border:1px solid #d5d9dd;border-radius:8px;background:#fff;font-size:16px}
+    input[type=number],input[type=text],select{width:100%;padding:13px 14px;border:1px solid #d5d9dd;border-radius:8px;background:#fff;font-size:16px}
     .progress{text-align:center;color:var(--muted);font-size:14px;font-weight:700}
     .question-word{text-align:center;font-size:39px;font-weight:900;margin:31px 0;word-break:break-word}
     .choices{display:grid;gap:11px}
@@ -91,9 +91,9 @@
     </div>
   </div>
 
-  <div id="adminAuthModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+  <div id="adminAuthModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="adminAuthTitle">
     <div class="auth-dialog">
-      <h2>Admin Settings</h2>
+      <h2 id="adminAuthTitle">Admin Settings</h2>
       <p class="section-note">비밀번호를 입력하세요.</p>
       <label for="adminPasswordInput">비밀번호</label>
       <input id="adminPasswordInput" type="password" inputmode="numeric" autocomplete="off" />
@@ -136,11 +136,10 @@
 
   <section id="adminPage" class="card hidden">
     <h2>Admin Settings</h2>
-    <p class="section-note">엑셀 첫 번째 열은 영어, 두 번째 열은 한국어 뜻으로 구성해 주세요. 업로드한 단어장은 이 브라우저에 자동 저장되어 다음에 다시 열어도 유지됩니다.</p>
+    <p class="section-note">GitHub의 voca.csv 파일을 수정한 뒤 아래 버튼을 누르면 최신 단어장으로 업데이트됩니다.</p>
     <div class="upload-box">
       <div class="upload-row">
-        <input id="excelFile" type="file" accept=".xlsx,.xls,.csv" />
-        <button id="importExcelBtn" class="primary-btn" type="button">Excel 불러오기</button>
+        <button id="updateCsvBtn" class="primary-btn full" type="button">GitHub CSV 단어장 업데이트</button>
       </div>
       <div id="uploadStatus" class="status"></div>
     </div>
@@ -212,18 +211,10 @@ const DEFAULT_WORDS=[
   {english:"Hospital",korean:"병원"},
   {english:"Where is it?",korean:"어디에 있나요?"}
 ];
-
 const ADMIN_PASSWORD="7356";
+const REMOTE_CSV_URL="https://raw.githubusercontent.com/Asher0428/vocabulary/main/voca.csv";
 const STORAGE_KEY="vocabularyTestWordsV2";
-
-let wordList=loadWords();
-let questions=[];
-let currentIndex=0;
-let answers=[];
-let choiceSets=[];
-let quizType="multiple";
-let direction="engToKor";
-
+let wordList=loadWords(),questions=[],currentIndex=0,answers=[],choiceSets=[],quizType="multiple",direction="engToKor";
 const $=id=>document.getElementById(id);
 const pages=[$("homePage"),$("vocabularyPage"),$("adminPage"),$("testSetupPage"),$("quizPage"),$("resultPage")];
 
@@ -235,7 +226,6 @@ function loadWords(){
     return [...DEFAULT_WORDS];
   }
 }
-
 function saveWords(){
   try{
     localStorage.setItem(STORAGE_KEY,JSON.stringify(wordList));
@@ -244,7 +234,6 @@ function saveWords(){
     return false;
   }
 }
-
 function showPage(page){
   pages.forEach(p=>p.classList.add("hidden"));
   page.classList.remove("hidden");
@@ -253,7 +242,6 @@ function showPage(page){
   closeAdminAuth();
   window.scrollTo({top:0,behavior:"smooth"});
 }
-
 function openAdminSettings(){
   $("adminPasswordInput").value="";
   $("adminPasswordStatus").className="status";
@@ -261,11 +249,9 @@ function openAdminSettings(){
   $("adminAuthModal").classList.remove("hidden");
   setTimeout(()=>$("adminPasswordInput").focus(),30);
 }
-
 function closeAdminAuth(){
   $("adminAuthModal").classList.add("hidden");
 }
-
 function confirmAdminPassword(){
   if($("adminPasswordInput").value!==ADMIN_PASSWORD){
     $("adminPasswordStatus").className="status error";
@@ -278,7 +264,6 @@ function confirmAdminPassword(){
   $("uploadStatus").textContent="";
   showPage($("adminPage"));
 }
-
 function shuffleArray(a){
   const c=[...a];
   for(let i=c.length-1;i>0;i--){
@@ -287,56 +272,75 @@ function shuffleArray(a){
   }
   return c;
 }
-
-function normalizeText(t){
-  return String(t??"").trim().toLowerCase().replace(/\s+/g,"");
-}
-
+function normalizeText(t){return String(t??"").trim().toLowerCase().replace(/\s+/g,"")}
 function escapeHtml(t){
   const d=document.createElement("div");
   d.textContent=String(t??"");
   return d.innerHTML;
 }
-
 function renderRows(tableBody,words){
   tableBody.innerHTML="";
   words.forEach((w,i)=>{
-    const row=document.createElement("tr");
-    row.innerHTML=`<td>${i+1}</td><td>${escapeHtml(w.english)}</td><td>${escapeHtml(w.korean)}</td>`;
-    tableBody.appendChild(row);
+    const r=document.createElement("tr");
+    r.innerHTML=`<td>${i+1}</td><td>${escapeHtml(w.english)}</td><td>${escapeHtml(w.korean)}</td>`;
+    tableBody.appendChild(r);
   });
 }
-
 function renderVocabulary(){
   renderRows($("vocabTableBody"),wordList);
   renderRows($("adminVocabTableBody"),wordList);
   $("wordCount").textContent=`${wordList.length} words`;
   $("adminWordCount").textContent=`${wordList.length} words`;
   $("questionCount").max=Math.max(1,wordList.length);
-  if(Number($("questionCount").value)>wordList.length){
-    $("questionCount").value=wordList.length;
-  }
+  if(Number($("questionCount").value)>wordList.length)$("questionCount").value=wordList.length;
 }
-
-function parseExcelRows(rows){
+function parseCsvText(text){
+  const rows=[];
+  let row=[],cell="",inQuotes=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(inQuotes){
+      if(ch==="\""&&text[i+1]==="\""){
+        cell+="\"";
+        i++;
+      }else if(ch==="\""){
+        inQuotes=false;
+      }else{
+        cell+=ch;
+      }
+    }else if(ch==="\""){
+      inQuotes=true;
+    }else if(ch===","){
+      row.push(cell);
+      cell="";
+    }else if(ch==="\n"){
+      row.push(cell);
+      rows.push(row);
+      row=[];
+      cell="";
+    }else if(ch!=="\r"){
+      cell+=ch;
+    }
+  }
+  if(cell!==""||row.length){
+    row.push(cell);
+    rows.push(row);
+  }
+  return rows;
+}
+function parseWordRows(rows){
   if(!Array.isArray(rows)||!rows.length)return[];
-
   const cleaned=rows.filter(r=>Array.isArray(r)&&r.some(c=>String(c??"").trim()!==""));
   if(!cleaned.length)return[];
-
   const first=cleaned[0].map(c=>String(c??"").trim().toLowerCase().replace(/\s+/g,""));
   const englishHeaders=["영어단어","영어","english","word","vocabulary"];
   const koreanHeaders=["한국어뜻","한국어","뜻","korean","meaning"];
   const hasHeader=englishHeaders.includes(first[0])||koreanHeaders.includes(first[1]);
   const data=hasHeader?cleaned.slice(1):cleaned;
-
   const parsed=data
     .map(r=>({english:String(r[0]??"").trim(),korean:String(r[1]??"").trim()}))
     .filter(w=>w.english&&w.korean);
-
-  const unique=[];
-  const seen=new Set();
-
+  const unique=[],seen=new Set();
   parsed.forEach(w=>{
     const key=`${normalizeText(w.english)}|${normalizeText(w.korean)}`;
     if(!seen.has(key)){
@@ -344,61 +348,40 @@ function parseExcelRows(rows){
       unique.push(w);
     }
   });
-
   return unique;
 }
-
-async function importExcel(){
+async function updateWordsFromGithubCsv(options={}){
+  const silent=options.silent===true;
   const status=$("uploadStatus");
-  status.className="status";
-  status.textContent="";
-
-  const file=$("excelFile").files[0];
-
-  if(!file){
-    status.className="status error";
-    status.textContent="Excel 파일을 먼저 선택하세요.";
-    return;
+  if(!silent){
+    status.className="status";
+    status.textContent="GitHub CSV에서 단어장을 불러오는 중입니다.";
   }
-
-  if(typeof XLSX==="undefined"){
-    status.className="status error";
-    status.textContent="Excel 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.";
-    return;
-  }
-
   try{
-    const buffer=await file.arrayBuffer();
-    const workbook=XLSX.read(buffer,{type:"array"});
-    const sheet=workbook.Sheets[workbook.SheetNames[0]];
-    const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:""});
-    const imported=parseExcelRows(rows);
-
+    const response=await fetch(`${REMOTE_CSV_URL}?t=${Date.now()}`,{cache:"no-store"});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    const csvText=await response.text();
+    const imported=parseWordRows(parseCsvText(csvText));
     if(!imported.length)throw new Error("empty");
-
     wordList=imported;
     const saved=saveWords();
     renderVocabulary();
-
-    status.className=saved?"status success":"status error";
-    status.textContent=saved
-      ? `${imported.length}개 단어를 불러왔습니다. 단어장이 자동 저장되어 다음에 다시 열어도 유지됩니다.`
-      : `${imported.length}개 단어를 불러왔지만 브라우저 저장소에 저장하지 못했습니다.`;
+    if(!silent){
+      status.className=saved?"status success":"status error";
+      status.textContent=saved
+        ? `${imported.length}개 단어를 GitHub CSV에서 불러왔습니다. 단어장이 자동 저장되었습니다.`
+        : `${imported.length}개 단어를 불러왔지만 브라우저 저장소에 저장하지 못했습니다.`;
+    }
   }catch(e){
-    status.className="status error";
-    status.textContent="파일을 읽지 못했습니다. 첫 번째 열이 영어, 두 번째 열이 한국어 뜻인지 확인하세요.";
+    if(!silent){
+      status.className="status error";
+      status.textContent="GitHub CSV를 불러오지 못했습니다. voca.csv 주소와 파일 내용을 확인하세요.";
+    }
     console.error(e);
   }
 }
-
-function getQuestionText(w){
-  return direction==="engToKor"?w.english:w.korean;
-}
-
-function getCorrectAnswer(w){
-  return direction==="engToKor"?w.korean:w.english;
-}
-
+function getQuestionText(w){return direction==="engToKor"?w.english:w.korean}
+function getCorrectAnswer(w){return direction==="engToKor"?w.korean:w.english}
 function buildChoiceSet(current){
   const correct=getCorrectAnswer(current);
   const wrong=shuffleArray(
@@ -407,10 +390,7 @@ function buildChoiceSet(current){
       .map(getCorrectAnswer)
       .filter(a=>normalizeText(a)!==normalizeText(correct))
   );
-
-  const unique=[];
-  const seen=new Set();
-
+  const unique=[],seen=new Set();
   wrong.forEach(a=>{
     const key=normalizeText(a);
     if(!seen.has(key)){
@@ -418,85 +398,63 @@ function buildChoiceSet(current){
       unique.push(a);
     }
   });
-
   return shuffleArray([correct,...unique.slice(0,3)]);
 }
-
 function startQuiz(custom=null){
   const status=$("testStatus");
   status.className="status";
   status.textContent="";
-
   if(!wordList.length){
     status.className="status error";
     status.textContent="Admin Settings에서 단어장을 먼저 불러오세요.";
     return;
   }
-
   quizType=$("quizType").value;
   direction=$("direction").value;
-
   const count=Number($("questionCount").value);
-
   if(!Number.isInteger(count)||count<1||count>wordList.length){
     status.className="status error";
     status.textContent=`문제 수는 1개부터 ${wordList.length}개 사이로 입력하세요.`;
     return;
   }
-
   if(quizType==="multiple"&&wordList.length<2){
     status.className="status error";
     status.textContent="객관식 시험에는 최소 2개 이상의 단어가 필요합니다.";
     return;
   }
-
   questions=custom?shuffleArray(custom):shuffleArray(wordList).slice(0,count);
   currentIndex=0;
   answers=new Array(questions.length).fill("");
   choiceSets=questions.map(w=>quizType==="multiple"?buildChoiceSet(w):[]);
-
   showPage($("quizPage"));
   renderQuestion();
 }
-
 function saveTyping(){
-  if(quizType==="typing"){
-    answers[currentIndex]=$("typingAnswer").value;
-  }
+  if(quizType==="typing")answers[currentIndex]=$("typingAnswer").value;
 }
-
 function renderQuestion(){
   const q=questions[currentIndex];
-
   $("progress").textContent=`${currentIndex+1} / ${questions.length}`;
   $("questionWord").textContent=getQuestionText(q);
   $("prevBtn").disabled=currentIndex===0;
   $("nextBtn").textContent=currentIndex===questions.length-1?"제출하기":"다음 문제";
-
   if(quizType==="multiple"){
     $("multipleChoiceArea").classList.remove("hidden");
     $("typingArea").classList.add("hidden");
-
     const area=$("multipleChoiceArea");
     area.innerHTML="";
-
     choiceSets[currentIndex].forEach(choice=>{
-      const button=document.createElement("button");
-      button.type="button";
-      button.className="choice-btn";
-      button.textContent=choice;
-
-      if(answers[currentIndex]===choice){
-        button.classList.add("selected");
-      }
-
-      button.onclick=()=>{
+      const b=document.createElement("button");
+      b.type="button";
+      b.className="choice-btn";
+      b.textContent=choice;
+      if(answers[currentIndex]===choice)b.classList.add("selected");
+      b.onclick=()=>{
         answers[currentIndex]=choice;
         area.querySelectorAll(".choice-btn").forEach(x=>x.classList.remove("selected"));
-        button.classList.add("selected");
+        b.classList.add("selected");
       };
-
-      area.appendChild(button);
+      area.appendChild(b);
     });
   }else{
     $("multipleChoiceArea").classList.add("hidden");
@@ -505,14 +463,11 @@ function renderQuestion(){
     setTimeout(()=>$("typingAnswer").focus(),30);
   }
 }
-
 function submitQuiz(){
   saveTyping();
-
   const data=questions.map((w,i)=>{
     const userAnswer=answers[i]||"";
     const correctAnswer=getCorrectAnswer(w);
-
     return{
       word:w,
       question:getQuestionText(w),
@@ -521,30 +476,19 @@ function submitQuiz(){
       isCorrect:normalizeText(userAnswer)===normalizeText(correctAnswer)
     };
   });
-
   $("score").textContent=`${data.filter(x=>x.isCorrect).length} / ${questions.length}`;
-
   const sheet=$("answerSheet");
   sheet.innerHTML="";
-
   data.forEach((x,i)=>{
     const box=document.createElement("div");
     box.className=`answer-item ${x.isCorrect?"correct":"wrong"}`;
-    box.innerHTML=`
-      <p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p>
-      <p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p>
-      <p>정답: ${escapeHtml(x.correctAnswer)}</p>
-      <p>결과: ${x.isCorrect?"정답":"오답"}</p>
-    `;
+    box.innerHTML=`<p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p><p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p><p>정답: ${escapeHtml(x.correctAnswer)}</p><p>결과: ${x.isCorrect?"정답":"오답"}</p>`;
     sheet.appendChild(box);
   });
-
   const wrong=data.filter(x=>!x.isCorrect).map(x=>x.word);
-
   $("retryWrongBtn").disabled=wrong.length===0;
   $("retryWrongBtn").textContent=wrong.length===0?"모든 문제를 맞혔습니다":`오답 ${wrong.length}개 다시 풀기`;
   $("retryWrongBtn").onclick=()=>wrong.length&&startQuiz(wrong);
-
   showPage($("resultPage"));
 }
 
@@ -552,26 +496,14 @@ $("homeBtn").onclick=()=>showPage($("homePage"));
 $("adminSettingsBtn").onclick=openAdminSettings;
 $("cancelAdminAuthBtn").onclick=closeAdminAuth;
 $("confirmAdminAuthBtn").onclick=confirmAdminPassword;
-
 $("adminPasswordInput").onkeydown=e=>{
   if(e.key==="Enter")confirmAdminPassword();
   if(e.key==="Escape")closeAdminAuth();
 };
-
-$("openVocabularyBtn").onclick=()=>{
-  renderVocabulary();
-  showPage($("vocabularyPage"));
-};
-
-$("openTestBtn").onclick=()=>{
-  renderVocabulary();
-  $("testStatus").textContent="";
-  showPage($("testSetupPage"));
-};
-
-$("importExcelBtn").onclick=importExcel;
+$("openVocabularyBtn").onclick=()=>{renderVocabulary();showPage($("vocabularyPage"))};
+$("openTestBtn").onclick=()=>{renderVocabulary();$("testStatus").textContent="";showPage($("testSetupPage"))};
+$("updateCsvBtn").onclick=()=>updateWordsFromGithubCsv();
 $("startBtn").onclick=()=>startQuiz();
-
 $("prevBtn").onclick=()=>{
   saveTyping();
   if(currentIndex>0){
@@ -579,7 +511,6 @@ $("prevBtn").onclick=()=>{
     renderQuestion();
   }
 };
-
 $("nextBtn").onclick=()=>{
   saveTyping();
   if(currentIndex<questions.length-1){
@@ -589,14 +520,13 @@ $("nextBtn").onclick=()=>{
     submitQuiz();
   }
 };
-
 $("typingAnswer").onkeydown=e=>{
   if(e.key==="Enter")$("nextBtn").click();
 };
-
 $("newTestBtn").onclick=()=>showPage($("testSetupPage"));
 
 renderVocabulary();
+updateWordsFromGithubCsv({silent:true});
 </script>
 </body>
 </html>
