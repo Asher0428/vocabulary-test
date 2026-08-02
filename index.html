@@ -6,12 +6,12 @@
   <title>생존영어</title>
   <style>
     *{box-sizing:border-box}
-    :root{--bg:#f3f5f7;--card:#fff;--text:#17191c;--muted:#6b7280;--line:#e2e6ea;--primary:#1f2328;--soft:#eef0f2;--danger:#b42318;--success:#16803c;--focus:#2563eb}
+    :root{--bg:#f3f5f7;--card:#fff;--text:#17191c;--muted:#6b7280;--line:#e2e6ea;--primary:#1f2328;--soft:#eef0f2;--danger:#b42318;--success:#16803c}
     body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,"Noto Sans KR",sans-serif}
     button,input,select{font:inherit}
     button{cursor:pointer}
     button:disabled{cursor:not-allowed;opacity:.55}
-    .app{width:min(94%,760px);margin:24px auto 36px}
+    .app{width:min(94%,860px);margin:24px auto 36px}
     .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;min-height:38px}
     .top-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
     .home-btn,.admin-btn{border:1px solid var(--line);background:#fff;border-radius:8px;font-weight:700}
@@ -20,18 +20,15 @@
     .card{background:var(--card);border-radius:8px;padding:26px;box-shadow:0 10px 28px rgba(0,0,0,.07)}
     .hidden{display:none!important}
     h1,h2{margin:0 0 18px}
-    h1{text-align:center;font-size:34px}
+    h1{text-align:center;font-size:34px;font-weight:900}
     h2{font-size:24px}
     .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px}
     .menu-btn{min-height:146px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:22px;text-align:left;transition:.15s}
     .menu-btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.06)}
-    .menu-btn:focus-visible,.home-btn:focus-visible,.admin-btn:focus-visible,.primary-btn:focus-visible,.secondary-btn:focus-visible,.danger-btn:focus-visible,.choice-btn:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}
+    .menu-btn:focus-visible,.home-btn:focus-visible,.admin-btn:focus-visible,.primary-btn:focus-visible,.secondary-btn:focus-visible,.danger-btn:focus-visible,.choice-btn:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}
     .menu-title{display:block;font-size:23px;font-weight:800;margin-bottom:9px}
     .menu-desc{color:var(--muted);line-height:1.55;font-size:14px}
     .section-note{color:var(--muted);font-size:14px;line-height:1.6;margin:-6px 0 18px}
-    .upload-box{border:1px dashed #aeb5bd;border-radius:8px;padding:18px;background:#fafbfc;margin-bottom:18px}
-    .upload-row{display:flex;gap:10px;flex-wrap:wrap}
-    input[type=file]{flex:1;min-width:220px;padding:11px;border:1px solid var(--line);background:#fff;border-radius:8px}
     .primary-btn,.secondary-btn,.danger-btn{border:0;border-radius:8px;padding:12px 16px;font-weight:800}
     .primary-btn{background:var(--primary);color:#fff}
     .secondary-btn{background:var(--soft)}
@@ -40,20 +37,30 @@
     .status{margin-top:12px;min-height:21px;font-size:14px;color:var(--muted)}
     .status.success{color:var(--success)}
     .status.error{color:var(--danger)}
-    .vocab-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:18px 0 12px}
+    .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:18px 0 12px;flex-wrap:wrap}
     .word-count{font-weight:800}
     .word-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
-    table{width:100%;border-collapse:collapse;min-width:420px}
+    table{width:100%;border-collapse:collapse;min-width:620px}
     th,td{text-align:center;padding:13px 15px;border-bottom:1px solid var(--line)}
     th{background:#f7f8fa;font-size:14px}
     tr:last-child td{border-bottom:0}
     .form-group{margin-bottom:18px}
     label{display:block;font-weight:800;margin-bottom:8px}
-    input[type=number],input[type=text],select{width:100%;padding:13px 14px;border:1px solid #d5d9dd;border-radius:8px;background:#fff;font-size:16px}
+    input[type=number],input[type=text],input[type=password],select{width:100%;padding:13px 14px;border:1px solid #d5d9dd;border-radius:8px;background:#fff;font-size:16px}
+    .selector-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+    .book-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+    .day-select-row{display:grid;grid-template-columns:minmax(180px,260px);gap:8px;margin:14px 0 18px}
+    .check-panel{border:1px solid var(--line);border-radius:8px;background:#fafbfc;padding:14px;min-height:120px}
+    .check-panel-title{font-weight:800;margin-bottom:10px}
+    .check-list{display:grid;gap:8px}
+    .check-item{display:flex;align-items:center;gap:8px;color:var(--text);line-height:1.4}
+    .check-item input{width:16px;height:16px;flex:0 0 auto}
+    .meta-pill{display:inline-flex;align-items:center;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;color:var(--muted);margin:0 5px 6px 0}
+    .vocab-day-title{font-size:20px;font-weight:900;margin:12px 0}
     .progress{text-align:center;color:var(--muted);font-size:14px;font-weight:700}
     .question-word{text-align:center;font-size:39px;font-weight:900;margin:31px 0;word-break:break-word}
     .choices{display:grid;gap:11px}
-    .choice-btn{width:100%;border:1px solid var(--line);border-radius:8px;background:#f8f9fa;padding:14px;text-align:left;font-weight:700}
+    .choice-btn{width:100%;border:1px solid var(--line);border-radius:8px;background:#f8f9fa;padding:14px;text-align:center;font-weight:700}
     .choice-btn.selected{color:#fff;background:var(--primary);border-color:var(--primary)}
     .navigation{display:flex;gap:10px;margin-top:22px}
     .navigation button{flex:1}
@@ -68,17 +75,15 @@
     .auth-dialog h2{font-size:21px;margin-bottom:8px}
     .auth-actions{display:flex;gap:10px;margin-top:14px}
     .auth-actions button{flex:1}
-    @media(max-width:560px){
+    @media(max-width:680px){
       .app{margin:14px auto 24px}
       .card{padding:20px}
       h1{font-size:30px}
-      .menu-grid{grid-template-columns:1fr}
+      .menu-grid,.selector-grid,.book-grid{grid-template-columns:1fr}
       .menu-btn{min-height:118px}
       .question-word{font-size:32px}
       .navigation{flex-direction:column}
-      .vocab-toolbar{align-items:flex-start;flex-direction:column}
-      .upload-row{display:grid}
-      input[type=file]{min-width:0;width:100%}
+      .toolbar{align-items:flex-start;flex-direction:column}
     }
   </style>
 </head>
@@ -110,21 +115,28 @@
     <div class="menu-grid">
       <button id="openVocabularyBtn" class="menu-btn" type="button">
         <span class="menu-title">Vocabulary</span>
-        <span class="menu-desc">현재 등록된 단어장을 확인합니다.</span>
       </button>
       <button id="openTestBtn" class="menu-btn" type="button">
         <span class="menu-title">Test</span>
-        <span class="menu-desc">문제 수, 시험 유형, 출제 방향을 설정하고 테스트를 시작합니다.</span>
       </button>
     </div>
   </section>
 
   <section id="vocabularyPage" class="card hidden">
     <h2>Vocabulary</h2>
-    <div class="vocab-toolbar">
-      <span id="wordCount" class="word-count">0 words</span>
+    <div id="vocabBookChoices" class="book-grid"></div>
+    <div id="vocabDayControls" class="hidden">
+      <div class="day-select-row">
+        <label for="vocabDaySelect">Day 선택</label>
+        <select id="vocabDaySelect"></select>
+      </div>
+      <div class="toolbar">
+        <button id="prevVocabDayBtn" class="secondary-btn" type="button">이전 Day</button>
+        <div id="vocabDayTitle" class="vocab-day-title"></div>
+        <button id="nextVocabDayBtn" class="secondary-btn" type="button">다음 Day</button>
+      </div>
     </div>
-    <div class="word-table-wrap">
+    <div id="vocabularyTableArea" class="word-table-wrap hidden">
       <table>
         <thead>
           <tr><th>No.</th><th>English</th><th>한국어</th></tr>
@@ -136,28 +148,25 @@
 
   <section id="adminPage" class="card hidden">
     <h2>Admin Settings</h2>
-    <p class="section-note">GitHub의 voca.csv 파일을 수정한 뒤 아래 버튼을 누르면 최신 단어장으로 업데이트됩니다.</p>
-    <div class="upload-box">
-      <div class="upload-row">
-        <button id="updateCsvBtn" class="primary-btn full" type="button">GitHub CSV 단어장 업데이트</button>
-      </div>
-      <div id="uploadStatus" class="status"></div>
-    </div>
-    <div class="vocab-toolbar">
-      <span id="adminWordCount" class="word-count">0 words</span>
-    </div>
-    <div class="word-table-wrap">
-      <table>
-        <thead>
-          <tr><th>No.</th><th>English</th><th>한국어</th></tr>
-        </thead>
-        <tbody id="adminVocabTableBody"></tbody>
-      </table>
-    </div>
+    <p class="section-note">새 단어 파트 CSV를 GitHub에 추가하면 코드의 <strong>VOCAB_BOOKS</strong> 배열에 CSV 경로를 하나 더 넣으면 됩니다.</p>
+    <div id="bookConfigList"></div>
+    <button id="adminRefreshBtn" class="primary-btn full" type="button">GitHub CSV 새로고침</button>
+    <div id="uploadStatus" class="status"></div>
   </section>
 
   <section id="testSetupPage" class="card hidden">
     <h2>Test</h2>
+    <div class="selector-grid">
+      <div class="check-panel">
+        <div class="check-panel-title">단어장 선택</div>
+        <div id="bookCheckboxes" class="check-list"></div>
+      </div>
+      <div class="check-panel">
+        <div class="check-panel-title">Day 선택</div>
+        <div id="dayCheckboxes" class="check-list"></div>
+      </div>
+    </div>
+    <div id="selectedScope" class="section-note"></div>
     <div class="form-group">
       <label for="questionCount">문제 수</label>
       <input id="questionCount" type="number" min="1" value="4" />
@@ -182,6 +191,7 @@
 
   <section id="quizPage" class="card hidden">
     <div id="progress" class="progress"></div>
+    <div id="questionMeta" class="progress"></div>
     <div id="questionWord" class="question-word"></div>
     <div id="multipleChoiceArea" class="choices"></div>
     <div id="typingArea" class="hidden">
@@ -205,35 +215,33 @@
 </main>
 
 <script>
-const DEFAULT_WORDS=[
-  {english:"Help",korean:"도와주세요"},
-  {english:"Water",korean:"물"},
-  {english:"Hospital",korean:"병원"},
-  {english:"Where is it?",korean:"어디에 있나요?"}
-];
 const ADMIN_PASSWORD="7356";
-const REMOTE_CSV_URL="https://raw.githubusercontent.com/Asher0428/vocabulary/main/voca.csv";
-const STORAGE_KEY="vocabularyTestWordsV2";
-let wordList=loadWords(),questions=[],currentIndex=0,answers=[],choiceSets=[],quizType="multiple",direction="engToKor";
+const DAY_SIZE=40;
+const VOCAB_BOOKS=[
+  {
+    id:"idiom",
+    title:"Idiom Part",
+    type:"csv",
+    url:"https://raw.githubusercontent.com/Asher0428/vocabulary/refs/heads/main/idioms.csv"
+  },
+  {
+    id:"word",
+    title:"Word Part",
+    type:"csv",
+    url:"https://raw.githubusercontent.com/Asher0428/vocabulary/refs/heads/main/words.csv"
+  }
+];
+
+let wordList=[],questions=[],currentIndex=0,answers=[],choiceSets=[],quizType="multiple",direction="engToKor";
+let selectedBookIds=new Set(VOCAB_BOOKS.map(book=>book.id));
+let selectedDayKeys=new Set();
+let activePool=[];
+let activeVocabularyBookId=null;
+let activeVocabularyDay=1;
+
 const $=id=>document.getElementById(id);
 const pages=[$("homePage"),$("vocabularyPage"),$("adminPage"),$("testSetupPage"),$("quizPage"),$("resultPage")];
 
-function loadWords(){
-  try{
-    const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return Array.isArray(saved)&&saved.length?saved:[...DEFAULT_WORDS];
-  }catch{
-    return [...DEFAULT_WORDS];
-  }
-}
-function saveWords(){
-  try{
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(wordList));
-    return true;
-  }catch{
-    return false;
-  }
-}
 function showPage(page){
   pages.forEach(p=>p.classList.add("hidden"));
   page.classList.remove("hidden");
@@ -260,9 +268,15 @@ function confirmAdminPassword(){
     return;
   }
   closeAdminAuth();
-  renderVocabulary();
+  renderAdmin();
   $("uploadStatus").textContent="";
   showPage($("adminPage"));
+}
+function normalizeText(t){return String(t??"").trim().toLowerCase().replace(/\s+/g,"")}
+function escapeHtml(t){
+  const d=document.createElement("div");
+  d.textContent=String(t??"");
+  return d.innerHTML;
 }
 function shuffleArray(a){
   const c=[...a];
@@ -272,29 +286,9 @@ function shuffleArray(a){
   }
   return c;
 }
-function normalizeText(t){return String(t??"").trim().toLowerCase().replace(/\s+/g,"")}
-function escapeHtml(t){
-  const d=document.createElement("div");
-  d.textContent=String(t??"");
-  return d.innerHTML;
-}
-function renderRows(tableBody,words){
-  tableBody.innerHTML="";
-  words.forEach((w,i)=>{
-    const r=document.createElement("tr");
-    r.innerHTML=`<td>${i+1}</td><td>${escapeHtml(w.english)}</td><td>${escapeHtml(w.korean)}</td>`;
-    tableBody.appendChild(r);
-  });
-}
-function renderVocabulary(){
-  renderRows($("vocabTableBody"),wordList);
-  renderRows($("adminVocabTableBody"),wordList);
-  $("wordCount").textContent=`${wordList.length} words`;
-  $("adminWordCount").textContent=`${wordList.length} words`;
-  $("questionCount").max=Math.max(1,wordList.length);
-  if(Number($("questionCount").value)>wordList.length)$("questionCount").value=wordList.length;
-}
 function parseCsvText(text){
+  const firstLine=(text.split(/\r?\n/)[0]||"");
+  const delimiter=firstLine.includes("\t")&&!firstLine.includes(",")?"\t":",";
   const rows=[];
   let row=[],cell="",inQuotes=false;
   for(let i=0;i<text.length;i++){
@@ -310,7 +304,7 @@ function parseCsvText(text){
       }
     }else if(ch==="\""){
       inQuotes=true;
-    }else if(ch===","){
+    }else if(ch===delimiter){
       row.push(cell);
       cell="";
     }else if(ch==="\n"){
@@ -332,13 +326,20 @@ function parseWordRows(rows){
   if(!Array.isArray(rows)||!rows.length)return[];
   const cleaned=rows.filter(r=>Array.isArray(r)&&r.some(c=>String(c??"").trim()!==""));
   if(!cleaned.length)return[];
-  const first=cleaned[0].map(c=>String(c??"").trim().toLowerCase().replace(/\s+/g,""));
-  const englishHeaders=["영어단어","영어","english","word","vocabulary"];
-  const koreanHeaders=["한국어뜻","한국어","뜻","korean","meaning"];
-  const hasHeader=englishHeaders.includes(first[0])||koreanHeaders.includes(first[1]);
+  const header=cleaned[0].map(c=>String(c??"").trim().toLowerCase().replace(/\s+/g,""));
+  const englishHeaders=["영어단어","영어","english","word","vocabulary","phrase","idiom"];
+  const koreanHeaders=["한국어뜻","한국어","뜻","korean","meaning","mean"];
+  const numberHeaders=["no.","no","number","번호"];
+  const englishIndex=header.findIndex(value=>englishHeaders.includes(value));
+  const koreanIndex=header.findIndex(value=>koreanHeaders.includes(value));
+  const hasHeader=englishIndex>=0&&koreanIndex>=0;
   const data=hasHeader?cleaned.slice(1):cleaned;
+  const fallbackEnglishIndex=numberHeaders.includes(header[0])?1:0;
+  const fallbackKoreanIndex=numberHeaders.includes(header[0])?2:1;
+  const sourceEnglishIndex=hasHeader?englishIndex:fallbackEnglishIndex;
+  const sourceKoreanIndex=hasHeader?koreanIndex:fallbackKoreanIndex;
   const parsed=data
-    .map(r=>({english:String(r[0]??"").trim(),korean:String(r[1]??"").trim()}))
+    .map(r=>({english:String(r[sourceEnglishIndex]??"").trim(),korean:String(r[sourceKoreanIndex]??"").trim()}))
     .filter(w=>w.english&&w.korean);
   const unique=[],seen=new Set();
   parsed.forEach(w=>{
@@ -350,42 +351,222 @@ function parseWordRows(rows){
   });
   return unique;
 }
-async function updateWordsFromGithubCsv(options={}){
+function decorateWords(book,words){
+  return words.map((word,index)=>({
+    ...word,
+    bookId:book.id,
+    bookTitle:book.title,
+    day:Math.floor(index/DAY_SIZE)+1,
+    number:index+1
+  }));
+}
+async function loadVocabularyBooks(options={}){
   const silent=options.silent===true;
-  const status=$("uploadStatus");
-  if(!silent){
-    status.className="status";
-    status.textContent="GitHub CSV에서 단어장을 불러오는 중입니다.";
+  const uploadStatus=$("uploadStatus");
+  if(!silent&&uploadStatus){
+    uploadStatus.className="status";
+    uploadStatus.textContent="단어장을 불러오는 중입니다.";
   }
   try{
-    const response=await fetch(`${REMOTE_CSV_URL}?t=${Date.now()}`,{cache:"no-store"});
-    if(!response.ok)throw new Error(`HTTP ${response.status}`);
-    const csvText=await response.text();
-    const imported=parseWordRows(parseCsvText(csvText));
-    if(!imported.length)throw new Error("empty");
-    wordList=imported;
-    const saved=saveWords();
-    renderVocabulary();
-    if(!silent){
-      status.className=saved?"status success":"status error";
-      status.textContent=saved
-        ? `${imported.length}개 단어를 GitHub CSV에서 불러왔습니다. 단어장이 자동 저장되었습니다.`
-        : `${imported.length}개 단어를 불러왔지만 브라우저 저장소에 저장하지 못했습니다.`;
+    const loaded=[];
+    const failedBooks=[];
+    for(const book of VOCAB_BOOKS){
+      try{
+        if(book.type==="csv"){
+          const response=await fetch(`${book.url}?t=${Date.now()}`,{cache:"no-store"});
+          if(!response.ok)throw new Error(`${book.title} HTTP ${response.status}`);
+          const csvText=await response.text();
+          const words=parseWordRows(parseCsvText(csvText));
+          if(!words.length)throw new Error(`${book.title} is empty`);
+          loaded.push(...decorateWords(book,words));
+        }else{
+          loaded.push(...decorateWords(book,book.words));
+        }
+      }catch(e){
+        failedBooks.push(book.title);
+        console.error(e);
+      }
+    }
+    if(!loaded.length)throw new Error("empty");
+    wordList=loaded;
+    syncSelectionsAfterLoad();
+    renderAll();
+    if(uploadStatus){
+      uploadStatus.className=failedBooks.length?"status error":"status success";
+      uploadStatus.textContent=failedBooks.length
+        ? `${getBookSummaries().join(" · ")} 불러옴 · 실패: ${failedBooks.join(", ")}`
+        : `${getBookSummaries().join(" · ")} 불러옴`;
     }
   }catch(e){
-    if(!silent){
-      status.className="status error";
-      status.textContent="GitHub CSV를 불러오지 못했습니다. voca.csv 주소와 파일 내용을 확인하세요.";
+    if(uploadStatus){
+      uploadStatus.className="status error";
+      uploadStatus.textContent="GitHub CSV를 불러오지 못했습니다.";
     }
     console.error(e);
   }
 }
+function syncSelectionsAfterLoad(){
+  const availableBooks=new Set(VOCAB_BOOKS.map(book=>book.id));
+  selectedBookIds=new Set([...selectedBookIds].filter(id=>availableBooks.has(id)));
+  if(!selectedBookIds.size)selectedBookIds=new Set(VOCAB_BOOKS.map(book=>book.id));
+  const availableDays=new Set(getAvailableDayKeys([...selectedBookIds]));
+  selectedDayKeys=new Set([...selectedDayKeys].filter(key=>availableDays.has(key)));
+  if(!selectedDayKeys.size)selectedDayKeys=new Set(availableDays);
+}
+function getBookSummaries(){
+  return VOCAB_BOOKS.map(book=>{
+    const count=wordList.filter(word=>word.bookId===book.id).length;
+    return `${book.title} ${count}개`;
+  });
+}
+function getAvailableDayKeys(bookIds){
+  const keys=[];
+  bookIds.forEach(bookId=>{
+    const days=[...new Set(wordList.filter(word=>word.bookId===bookId).map(word=>word.day))].sort((a,b)=>a-b);
+    days.forEach(day=>keys.push(`${bookId}:${day}`));
+  });
+  return keys;
+}
+function getSelectedWords(){
+  return wordList.filter(word=>selectedBookIds.has(word.bookId)&&selectedDayKeys.has(`${word.bookId}:${word.day}`));
+}
+function renderVocabularyChoices(){
+  const box=$("vocabBookChoices");
+  box.innerHTML="";
+  VOCAB_BOOKS.forEach(book=>{
+    const count=wordList.filter(word=>word.bookId===book.id).length;
+    const button=document.createElement("button");
+    button.type="button";
+    button.className="menu-btn";
+    button.innerHTML=`<span class="menu-title">${escapeHtml(book.title)}</span><span class="menu-desc">${count}개 단어 · ${Math.max(1,Math.ceil(count/DAY_SIZE))} days</span>`;
+    button.onclick=()=>{
+      activeVocabularyBookId=book.id;
+      activeVocabularyDay=1;
+      renderVocabulary();
+    };
+    box.appendChild(button);
+  });
+}
+function renderRows(tableBody,words){
+  tableBody.innerHTML="";
+  words.forEach((w,i)=>{
+    const r=document.createElement("tr");
+    r.innerHTML=`<td>${i+1}</td><td>${escapeHtml(w.english)}</td><td>${escapeHtml(w.korean)}</td>`;
+    tableBody.appendChild(r);
+  });
+}
+function renderVocabulary(){
+  renderVocabularyChoices();
+  if(!activeVocabularyBookId){
+    $("vocabDayControls").classList.add("hidden");
+    $("vocabularyTableArea").classList.add("hidden");
+    $("vocabTableBody").innerHTML="";
+    return;
+  }
+  const bookWords=wordList.filter(word=>word.bookId===activeVocabularyBookId);
+  const days=[...new Set(bookWords.map(word=>word.day))].sort((a,b)=>a-b);
+  if(!days.includes(activeVocabularyDay))activeVocabularyDay=days[0]||1;
+  renderVocabularyDaySelect(days);
+  const selected=bookWords.filter(word=>word.day===activeVocabularyDay);
+  const book=VOCAB_BOOKS.find(item=>item.id===activeVocabularyBookId);
+  $("vocabDayTitle").textContent=`${book?.title||"Vocabulary"} · Day ${activeVocabularyDay}`;
+  $("prevVocabDayBtn").disabled=days.indexOf(activeVocabularyDay)<=0;
+  $("nextVocabDayBtn").disabled=days.indexOf(activeVocabularyDay)===days.length-1;
+  renderRows($("vocabTableBody"),selected);
+  $("vocabDayControls").classList.remove("hidden");
+  $("vocabularyTableArea").classList.remove("hidden");
+}
+function renderVocabularyDaySelect(days){
+  const select=$("vocabDaySelect");
+  select.innerHTML="";
+  days.forEach(day=>{
+    const option=document.createElement("option");
+    option.value=String(day);
+    option.textContent=`Day ${day}`;
+    select.appendChild(option);
+  });
+  select.value=String(activeVocabularyDay);
+}
+function moveVocabularyDay(step){
+  if(!activeVocabularyBookId)return;
+  const days=[...new Set(wordList.filter(word=>word.bookId===activeVocabularyBookId).map(word=>word.day))].sort((a,b)=>a-b);
+  const index=days.indexOf(activeVocabularyDay);
+  const next=days[index+step];
+  if(next){
+    activeVocabularyDay=next;
+    renderVocabulary();
+  }
+}
+function renderAdmin(){
+  const box=$("bookConfigList");
+  box.innerHTML="";
+  VOCAB_BOOKS.forEach(book=>{
+    const count=wordList.filter(word=>word.bookId===book.id).length;
+    const div=document.createElement("div");
+    div.className="section-note";
+    div.innerHTML=`<span class="meta-pill">${escapeHtml(book.title)}</span><span class="meta-pill">${count} words</span>${book.url?escapeHtml(book.url):"내장 단어장"}`;
+    box.appendChild(div);
+  });
+}
+function renderSelectors(){
+  const bookBox=$("bookCheckboxes");
+  bookBox.innerHTML="";
+  VOCAB_BOOKS.forEach(book=>{
+    const count=wordList.filter(word=>word.bookId===book.id).length;
+    const label=document.createElement("label");
+    label.className="check-item";
+    label.innerHTML=`<input type="checkbox" value="${book.id}" ${selectedBookIds.has(book.id)?"checked":""}> <span>${escapeHtml(book.title)} (${count})</span>`;
+    label.querySelector("input").onchange=e=>{
+      if(e.target.checked)selectedBookIds.add(book.id);
+      else selectedBookIds.delete(book.id);
+      if(!selectedBookIds.size)selectedBookIds.add(book.id);
+      selectedDayKeys=new Set(getAvailableDayKeys([...selectedBookIds]));
+      renderSelectors();
+    };
+    bookBox.appendChild(label);
+  });
+
+  const dayBox=$("dayCheckboxes");
+  dayBox.innerHTML="";
+  const dayKeys=getAvailableDayKeys([...selectedBookIds]);
+  dayKeys.forEach(key=>{
+    const [bookId,dayText]=key.split(":");
+    const book=VOCAB_BOOKS.find(item=>item.id===bookId);
+    const count=wordList.filter(word=>word.bookId===bookId&&String(word.day)===dayText).length;
+    const label=document.createElement("label");
+    label.className="check-item";
+    label.innerHTML=`<input type="checkbox" value="${key}" ${selectedDayKeys.has(key)?"checked":""}> <span>${escapeHtml(book?.title||bookId)} Day ${dayText} (${count})</span>`;
+    label.querySelector("input").onchange=e=>{
+      if(e.target.checked)selectedDayKeys.add(key);
+      else selectedDayKeys.delete(key);
+      if(!selectedDayKeys.size){
+        selectedDayKeys.add(key);
+        renderSelectors();
+      }else{
+        updateScope();
+      }
+    };
+    dayBox.appendChild(label);
+  });
+  updateScope();
+}
+function updateScope(){
+  const selected=getSelectedWords();
+  $("selectedScope").textContent=`선택된 범위: ${selected.length}개 단어`;
+  $("questionCount").max=Math.max(1,selected.length);
+  if(Number($("questionCount").value)>selected.length)$("questionCount").value=selected.length||1;
+}
+function renderAll(){
+  renderVocabulary();
+  renderAdmin();
+  renderSelectors();
+}
 function getQuestionText(w){return direction==="engToKor"?w.english:w.korean}
 function getCorrectAnswer(w){return direction==="engToKor"?w.korean:w.english}
-function buildChoiceSet(current){
+function buildChoiceSet(current,pool){
   const correct=getCorrectAnswer(current);
   const wrong=shuffleArray(
-    wordList
+    pool
       .filter(w=>normalizeText(w.english)!==normalizeText(current.english))
       .map(getCorrectAnswer)
       .filter(a=>normalizeText(a)!==normalizeText(correct))
@@ -404,28 +585,30 @@ function startQuiz(custom=null){
   const status=$("testStatus");
   status.className="status";
   status.textContent="";
-  if(!wordList.length){
-    status.className="status error";
-    status.textContent="Admin Settings에서 단어장을 먼저 불러오세요.";
-    return;
-  }
   quizType=$("quizType").value;
   direction=$("direction").value;
-  const count=Number($("questionCount").value);
-  if(!Number.isInteger(count)||count<1||count>wordList.length){
+  const pool=custom||getSelectedWords();
+  if(!pool.length){
     status.className="status error";
-    status.textContent=`문제 수는 1개부터 ${wordList.length}개 사이로 입력하세요.`;
+    status.textContent="단어장과 Day를 하나 이상 선택하세요.";
     return;
   }
-  if(quizType==="multiple"&&wordList.length<2){
+  const count=custom?pool.length:Number($("questionCount").value);
+  if(!Number.isInteger(count)||count<1||count>pool.length){
+    status.className="status error";
+    status.textContent=`문제 수는 1개부터 ${pool.length}개 사이로 입력하세요.`;
+    return;
+  }
+  if(quizType==="multiple"&&pool.length<2){
     status.className="status error";
     status.textContent="객관식 시험에는 최소 2개 이상의 단어가 필요합니다.";
     return;
   }
-  questions=custom?shuffleArray(custom):shuffleArray(wordList).slice(0,count);
+  activePool=pool;
+  questions=custom?shuffleArray(pool):shuffleArray(pool).slice(0,count);
   currentIndex=0;
   answers=new Array(questions.length).fill("");
-  choiceSets=questions.map(w=>quizType==="multiple"?buildChoiceSet(w):[]);
+  choiceSets=questions.map(w=>quizType==="multiple"?buildChoiceSet(w,pool):[]);
   showPage($("quizPage"));
   renderQuestion();
 }
@@ -435,6 +618,7 @@ function saveTyping(){
 function renderQuestion(){
   const q=questions[currentIndex];
   $("progress").textContent=`${currentIndex+1} / ${questions.length}`;
+  $("questionMeta").textContent=`${q.bookTitle} · Day ${q.day}`;
   $("questionWord").textContent=getQuestionText(q);
   $("prevBtn").disabled=currentIndex===0;
   $("nextBtn").textContent=currentIndex===questions.length-1?"제출하기":"다음 문제";
@@ -468,13 +652,7 @@ function submitQuiz(){
   const data=questions.map((w,i)=>{
     const userAnswer=answers[i]||"";
     const correctAnswer=getCorrectAnswer(w);
-    return{
-      word:w,
-      question:getQuestionText(w),
-      userAnswer,
-      correctAnswer,
-      isCorrect:normalizeText(userAnswer)===normalizeText(correctAnswer)
-    };
+    return{word:w,question:getQuestionText(w),userAnswer,correctAnswer,isCorrect:normalizeText(userAnswer)===normalizeText(correctAnswer)};
   });
   $("score").textContent=`${data.filter(x=>x.isCorrect).length} / ${questions.length}`;
   const sheet=$("answerSheet");
@@ -482,7 +660,7 @@ function submitQuiz(){
   data.forEach((x,i)=>{
     const box=document.createElement("div");
     box.className=`answer-item ${x.isCorrect?"correct":"wrong"}`;
-    box.innerHTML=`<p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p><p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p><p>정답: ${escapeHtml(x.correctAnswer)}</p><p>결과: ${x.isCorrect?"정답":"오답"}</p>`;
+    box.innerHTML=`<p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p><p>${escapeHtml(x.word.bookTitle)} · Day ${x.word.day}</p><p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p><p>정답: ${escapeHtml(x.correctAnswer)}</p><p>결과: ${x.isCorrect?"정답":"오답"}</p>`;
     sheet.appendChild(box);
   });
   const wrong=data.filter(x=>!x.isCorrect).map(x=>x.word);
@@ -501,8 +679,14 @@ $("adminPasswordInput").onkeydown=e=>{
   if(e.key==="Escape")closeAdminAuth();
 };
 $("openVocabularyBtn").onclick=()=>{renderVocabulary();showPage($("vocabularyPage"))};
-$("openTestBtn").onclick=()=>{renderVocabulary();$("testStatus").textContent="";showPage($("testSetupPage"))};
-$("updateCsvBtn").onclick=()=>updateWordsFromGithubCsv();
+$("openTestBtn").onclick=()=>{renderSelectors();$("testStatus").textContent="";showPage($("testSetupPage"))};
+$("adminRefreshBtn").onclick=()=>loadVocabularyBooks();
+$("prevVocabDayBtn").onclick=()=>moveVocabularyDay(-1);
+$("nextVocabDayBtn").onclick=()=>moveVocabularyDay(1);
+$("vocabDaySelect").onchange=e=>{
+  activeVocabularyDay=Number(e.target.value);
+  renderVocabulary();
+};
 $("startBtn").onclick=()=>startQuiz();
 $("prevBtn").onclick=()=>{
   saveTyping();
@@ -525,8 +709,8 @@ $("typingAnswer").onkeydown=e=>{
 };
 $("newTestBtn").onclick=()=>showPage($("testSetupPage"));
 
-renderVocabulary();
-updateWordsFromGithubCsv({silent:true});
+renderAll();
+loadVocabularyBooks();
 </script>
 </body>
 </html>
