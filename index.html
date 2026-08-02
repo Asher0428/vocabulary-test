@@ -454,7 +454,10 @@ function getValidatedDayRange(bookId,requireStart=false){
   if(start<min||start>max||end<min||end>max){
     return {error:`${book?.title||bookId}의 Day는 ${min}부터 ${max} 사이로 입력하세요.`};
   }
-  return {start:Math.min(start,end),end:Math.max(start,end)};
+  if(end<start){
+    return {error:`${book?.title||bookId}의 끝 Day는 시작 Day 이상의 Day를 골라주세요.`};
+  }
+  return {start,end};
 }
 function getSelectedWords(requireStart=false){
   const words=[];
