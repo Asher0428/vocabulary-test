@@ -55,6 +55,11 @@
     .check-list{display:grid;gap:8px}
     .check-item{display:flex;align-items:center;gap:8px;color:var(--text);line-height:1.4}
     .check-item input{width:16px;height:16px;flex:0 0 auto}
+    .range-list{display:grid;gap:12px}
+    .range-item{border:1px solid var(--line);border-radius:8px;background:#fff;padding:12px}
+    .range-title{font-weight:800;margin-bottom:8px}
+    .range-controls{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
+    .range-controls span{text-align:center;color:var(--muted);font-weight:800}
     .meta-pill{display:inline-flex;align-items:center;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;color:var(--muted);margin:0 5px 6px 0}
     .vocab-day-title{font-size:20px;font-weight:900;margin:12px 0}
     .progress{text-align:center;color:var(--muted);font-size:14px;font-weight:700}
@@ -162,8 +167,8 @@
         <div id="bookCheckboxes" class="check-list"></div>
       </div>
       <div class="check-panel">
-        <div class="check-panel-title">Day 선택</div>
-        <div id="dayCheckboxes" class="check-list"></div>
+        <div class="check-panel-title">Day 범위</div>
+        <div id="dayRangeControls" class="range-list"></div>
       </div>
     </div>
     <div id="selectedScope" class="section-note"></div>
@@ -234,7 +239,7 @@ const VOCAB_BOOKS=[
 
 let wordList=[],questions=[],currentIndex=0,answers=[],choiceSets=[],quizType="multiple",direction="engToKor";
 let selectedBookIds=new Set(VOCAB_BOOKS.map(book=>book.id));
-let selectedDayKeys=new Set();
+let selectedDayRanges={};
 let activePool=[];
 let activeVocabularyBookId=null;
 let activeVocabularyDay=1;
@@ -409,9 +414,7 @@ function syncSelectionsAfterLoad(){
   const availableBooks=new Set(VOCAB_BOOKS.map(book=>book.id));
   selectedBookIds=new Set([...selectedBookIds].filter(id=>availableBooks.has(id)));
   if(!selectedBookIds.size)selectedBookIds=new Set(VOCAB_BOOKS.map(book=>book.id));
-  const availableDays=new Set(getAvailableDayKeys([...selectedBookIds]));
-  selectedDayKeys=new Set([...selectedDayKeys].filter(key=>availableDays.has(key)));
-  if(!selectedDayKeys.size)selectedDayKeys=new Set(availableDays);
+  syncDayRanges();
 }
 function getBookSummaries(){
   return VOCAB_BOOKS.map(book=>{
@@ -419,16 +422,29 @@ function getBookSummaries(){
     return `${book.title} ${count}개`;
   });
 }
-function getAvailableDayKeys(bookIds){
-  const keys=[];
-  bookIds.forEach(bookId=>{
-    const days=[...new Set(wordList.filter(word=>word.bookId===bookId).map(word=>word.day))].sort((a,b)=>a-b);
-    days.forEach(day=>keys.push(`${bookId}:${day}`));
+function getBookDays(bookId){
+  return [...new Set(wordList.filter(word=>word.bookId===bookId).map(word=>word.day))].sort((a,b)=>a-b);
+}
+function syncDayRanges(){
+  const nextRanges={};
+  VOCAB_BOOKS.forEach(book=>{
+    const days=getBookDays(book.id);
+    const min=days[0]||1;
+    const max=days[days.length-1]||1;
+    const current=selectedDayRanges[book.id]||{start:min,end:max};
+    const start=Math.min(Math.max(Number(current.start)||min,min),max);
+    const end=Math.min(Math.max(Number(current.end)||max,min),max);
+    nextRanges[book.id]={start:Math.min(start,end),end:Math.max(start,end)};
   });
-  return keys;
+  selectedDayRanges=nextRanges;
 }
 function getSelectedWords(){
-  return wordList.filter(word=>selectedBookIds.has(word.bookId)&&selectedDayKeys.has(`${word.bookId}:${word.day}`));
+  return wordList.filter(word=>{
+    if(!selectedBookIds.has(word.bookId))return false;
+    const range=selectedDayRanges[word.bookId];
+    if(!range)return false;
+    return word.day>=range.start&&word.day<=range.end;
+  });
 }
 function renderVocabularyChoices(){
   const box=$("vocabBookChoices");
@@ -509,6 +525,7 @@ function renderAdmin(){
   });
 }
 function renderSelectors(){
+  syncDayRanges();
   const bookBox=$("bookCheckboxes");
   bookBox.innerHTML="";
   VOCAB_BOOKS.forEach(book=>{
@@ -520,33 +537,44 @@ function renderSelectors(){
       if(e.target.checked)selectedBookIds.add(book.id);
       else selectedBookIds.delete(book.id);
       if(!selectedBookIds.size)selectedBookIds.add(book.id);
-      selectedDayKeys=new Set(getAvailableDayKeys([...selectedBookIds]));
       renderSelectors();
     };
     bookBox.appendChild(label);
   });
 
-  const dayBox=$("dayCheckboxes");
-  dayBox.innerHTML="";
-  const dayKeys=getAvailableDayKeys([...selectedBookIds]);
-  dayKeys.forEach(key=>{
-    const [bookId,dayText]=key.split(":");
+  const rangeBox=$("dayRangeControls");
+  rangeBox.innerHTML="";
+  [...selectedBookIds].forEach(bookId=>{
     const book=VOCAB_BOOKS.find(item=>item.id===bookId);
-    const count=wordList.filter(word=>word.bookId===bookId&&String(word.day)===dayText).length;
-    const label=document.createElement("label");
-    label.className="check-item";
-    label.innerHTML=`<input type="checkbox" value="${key}" ${selectedDayKeys.has(key)?"checked":""}> <span>${escapeHtml(book?.title||bookId)} Day ${dayText} (${count})</span>`;
-    label.querySelector("input").onchange=e=>{
-      if(e.target.checked)selectedDayKeys.add(key);
-      else selectedDayKeys.delete(key);
-      if(!selectedDayKeys.size){
-        selectedDayKeys.add(key);
-        renderSelectors();
-      }else{
-        updateScope();
-      }
+    const days=getBookDays(bookId);
+    const min=days[0]||1;
+    const max=days[days.length-1]||1;
+    const range=selectedDayRanges[bookId]||{start:min,end:max};
+    const item=document.createElement("div");
+    item.className="range-item";
+    item.innerHTML=`
+      <div class="range-title">${escapeHtml(book?.title||bookId)} <span class="meta-pill">Day ${min} - Day ${max}</span></div>
+      <div class="range-controls">
+        <input class="day-start-input" type="number" min="${min}" max="${max}" value="${range.start}" aria-label="${escapeHtml(book?.title||bookId)} 시작 Day">
+        <span>~</span>
+        <input class="day-end-input" type="number" min="${min}" max="${max}" value="${range.end}" aria-label="${escapeHtml(book?.title||bookId)} 끝 Day">
+      </div>
+    `;
+    const startInput=item.querySelector(".day-start-input");
+    const endInput=item.querySelector(".day-end-input");
+    const applyRange=()=>{
+      const start=Math.min(Math.max(Number(startInput.value)||min,min),max);
+      const end=Math.min(Math.max(Number(endInput.value)||max,min),max);
+      selectedDayRanges[bookId]={start:Math.min(start,end),end:Math.max(start,end)};
+      startInput.value=selectedDayRanges[bookId].start;
+      endInput.value=selectedDayRanges[bookId].end;
+      updateScope();
     };
-    dayBox.appendChild(label);
+    startInput.onchange=applyRange;
+    endInput.onchange=applyRange;
+    startInput.oninput=applyRange;
+    endInput.oninput=applyRange;
+    rangeBox.appendChild(item);
   });
   updateScope();
 }
