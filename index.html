@@ -721,7 +721,7 @@ function submitQuiz(){
   data.forEach((x,i)=>{
     const box=document.createElement("div");
     box.className=`answer-item ${x.isCorrect?"correct":"wrong"}`;
-    box.innerHTML=`<p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p><p>${escapeHtml(x.word.bookTitle)} · Day ${x.word.day}</p><p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p><p>정답: ${escapeHtml(x.correctAnswer)}</p><p>결과: ${x.isCorrect?"정답":"오답"}</p>`;
+    box.innerHTML=`<p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p><p>${escapeHtml(x.word.boTitle)} · Day ${x.word.day}</p><p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p><p>정답: ${escapeHtml(x.correctAnswer)}</p><p>결과: ${x.isCorrect?"정답":"오답"}</p>`;
     sheet.appendChild(box);
   });
   const wrong=data.filter(x=>!x.isCorrect).map(x=>x.word);
