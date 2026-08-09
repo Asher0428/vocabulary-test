@@ -235,11 +235,18 @@ const VOCAB_BOOKS=[
     title:"Word Part",
     type:"csv",
     url:"https://raw.githubusercontent.com/Asher0428/vocabulary/refs/heads/main/words.csv"
+  },
+  {
+    id:"colloquial",
+    title:"Colloquial Part",
+    type:"csv",
+    url:"https://raw.githubusercontent.com/Asher0428/vocabulary/refs/heads/main/colloquial.csv",
+    includeInTest:false
   }
 ];
 
 let wordList=[],questions=[],currentIndex=0,answers=[],choiceSets=[],quizType="multiple",direction="engToKor";
-let selectedBookIds=new Set(VOCAB_BOOKS.map(book=>book.id));
+let selectedBookIds=new Set(VOCAB_BOOKS.filter(book=>book.includeInTest!==false).map(book=>book.id));
 let selectedDayRanges={};
 let activePool=[];
 let activeVocabularyBookId=null;
@@ -430,10 +437,13 @@ function refreshVocabularyIfStale(){
   if(Date.now()-lastVocabularyRefreshAt<DATA_REFRESH_INTERVAL_MS)return;
   loadVocabularyBooks({silent:true});
 }
+function getTestBooks(){
+  return VOCAB_BOOKS.filter(book=>book.includeInTest!==false);
+}
 function syncSelectionsAfterLoad(){
-  const availableBooks=new Set(VOCAB_BOOKS.map(book=>book.id));
+  const availableBooks=new Set(getTestBooks().map(book=>book.id));
   selectedBookIds=new Set([...selectedBookIds].filter(id=>availableBooks.has(id)));
-  if(!selectedBookIds.size)selectedBookIds=new Set(VOCAB_BOOKS.map(book=>book.id));
+  if(!selectedBookIds.size)selectedBookIds=new Set(getTestBooks().map(book=>book.id));
   syncDayRanges();
 }
 function getBookSummaries(){
@@ -447,7 +457,7 @@ function getBookDays(bookId){
 }
 function syncDayRanges(){
   const nextRanges={};
-  VOCAB_BOOKS.forEach(book=>{
+  getTestBooks().forEach(book=>{
     const current=selectedDayRanges[book.id]||{start:"",end:""};
     nextRanges[book.id]={start:String(current.start??""),end:String(current.end??"")};
   });
@@ -563,7 +573,7 @@ function renderAdmin(){
     const count=wordList.filter(word=>word.bookId===book.id).length;
     const div=document.createElement("div");
     div.className="section-note";
-    div.innerHTML=`<span class="meta-pill">${escapeHtml(book.title)}</span><span class="meta-pill">${count} words</span>${book.url?escapeHtml(book.url):"내장 단어장"}`;
+    div.innerHTML=`<span class="meta-pill">${escapeHtml(book.title)}</span><span class="meta-pill">${count} words</span>${book.includeInTest===false?'<span class="meta-pill">Test 제외</span>':""}${book.url?escapeHtml(book.url):"내장 단어장"}`;
     box.appendChild(div);
   });
 }
@@ -571,7 +581,7 @@ function renderSelectors(){
   syncDayRanges();
   const bookBox=$("bookCheckboxes");
   bookBox.innerHTML="";
-  VOCAB_BOOKS.forEach(book=>{
+  getTestBooks().forEach(book=>{
     const count=wordList.filter(word=>word.bookId===book.id).length;
     const label=document.createElement("label");
     label.className="check-item";
