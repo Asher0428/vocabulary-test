@@ -222,6 +222,7 @@
 <script>
 const ADMIN_PASSWORD="7356";
 const DAY_SIZE=40;
+const DATA_REFRESH_INTERVAL_MS=60000;
 const VOCAB_BOOKS=[
   {
     id:"idiom",
@@ -243,6 +244,8 @@ let selectedDayRanges={};
 let activePool=[];
 let activeVocabularyBookId=null;
 let activeVocabularyDay=1;
+let lastVocabularyRefreshAt=0;
+let vocabularyLoadPromise=null;
 
 const $=id=>document.getElementById(id);
 const pages=[$("homePage"),$("vocabularyPage"),$("adminPage"),$("testSetupPage"),$("quizPage"),$("resultPage")];
@@ -365,20 +368,25 @@ function decorateWords(book,words){
     number:index+1
   }));
 }
+function freshCsvUrl(url){
+  const glue=url.includes("?")?"&":"?";
+  return `${url}${glue}v=${Date.now()}`;
+}
 async function loadVocabularyBooks(options={}){
+  if(vocabularyLoadPromise)return vocabularyLoadPromise;
   const silent=options.silent===true;
   const uploadStatus=$("uploadStatus");
-  if(!silent&&uploadStatus){
-    uploadStatus.className="status";
-    uploadStatus.textContent="단어장을 불러오는 중입니다.";
-  }
-  try{
+  vocabularyLoadPromise=(async()=>{
+    if(!silent&&uploadStatus){
+      uploadStatus.className="status";
+      uploadStatus.textContent="단어장을 불러오는 중입니다.";
+    }
     const loaded=[];
     const failedBooks=[];
     for(const book of VOCAB_BOOKS){
       try{
         if(book.type==="csv"){
-          const response=await fetch(`${book.url}?t=${Date.now()}`,{cache:"no-store"});
+          const response=await fetch(freshCsvUrl(book.url),{cache:"no-store"});
           if(!response.ok)throw new Error(`${book.title} HTTP ${response.status}`);
           const csvText=await response.text();
           const words=parseWordRows(parseCsvText(csvText));
@@ -394,6 +402,7 @@ async function loadVocabularyBooks(options={}){
     }
     if(!loaded.length)throw new Error("empty");
     wordList=loaded;
+    lastVocabularyRefreshAt=Date.now();
     syncSelectionsAfterLoad();
     renderAll();
     if(uploadStatus){
@@ -402,13 +411,24 @@ async function loadVocabularyBooks(options={}){
         ? `${getBookSummaries().join(" · ")} 불러옴 · 실패: ${failedBooks.join(", ")}`
         : `${getBookSummaries().join(" · ")} 불러옴`;
     }
+    return true;
+  })();
+  try{
+    return await vocabularyLoadPromise;
   }catch(e){
-    if(uploadStatus){
-      uploadStatus.className="status error";
-      uploadStatus.textContent="GitHub CSV를 불러오지 못했습니다.";
+    if(!silent&&uploadStatus){
+        uploadStatus.className="status error";
+        uploadStatus.textContent="GitHub CSV를 불러오지 못했습니다.";
     }
     console.error(e);
+    return false;
+  }finally{
+    vocabularyLoadPromise=null;
   }
+}
+function refreshVocabularyIfStale(){
+  if(Date.now()-lastVocabularyRefreshAt<DATA_REFRESH_INTERVAL_MS)return;
+  loadVocabularyBooks({silent:true});
 }
 function syncSelectionsAfterLoad(){
   const availableBooks=new Set(VOCAB_BOOKS.map(book=>book.id));
@@ -721,7 +741,7 @@ function submitQuiz(){
   data.forEach((x,i)=>{
     const box=document.createElement("div");
     box.className=`answer-item ${x.isCorrect?"correct":"wrong"}`;
-    box.innerHTML=`<p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p><p>${escapeHtml(x.word.boTitle)} · Day ${x.word.day}</p><p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p><p>정답: ${escapeHtml(x.correctAnswer)}</p><p>결과: ${x.isCorrect?"정답":"오답"}</p>`;
+    box.innerHTML=`<p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p><p>${escapeHtml(x.word.bookTitle)} · Day ${x.word.day}</p><p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p><p>정답: ${escapeHtml(x.correctAnswer)}</p><p>결과: ${x.isCorrect?"정답":"오답"}</p>`;
     sheet.appendChild(box);
   });
   const wrong=data.filter(x=>!x.isCorrect).map(x=>x.word);
@@ -739,8 +759,21 @@ $("adminPasswordInput").onkeydown=e=>{
   if(e.key==="Enter")confirmAdminPassword();
   if(e.key==="Escape")closeAdminAuth();
 };
-$("openVocabularyBtn").onclick=()=>{renderVocabulary();showPage($("vocabularyPage"))};
-$("openTestBtn").onclick=()=>{renderSelectors();$("testStatus").textContent="";showPage($("testSetupPage"))};
+$("openVocabularyBtn").onclick=async()=>{
+  renderVocabulary();
+  showPage($("vocabularyPage"));
+  await loadVocabularyBooks({silent:true});
+  renderVocabulary();
+};
+$("openTestBtn").onclick=async()=>{
+  renderSelectors();
+  $("testStatus").className="status";
+  $("testStatus").textContent="최신 단어장을 확인하는 중입니다.";
+  showPage($("testSetupPage"));
+  await loadVocabularyBooks({silent:true});
+  $("testStatus").textContent="";
+  renderSelectors();
+};
 $("adminRefreshBtn").onclick=()=>loadVocabularyBooks();
 $("prevVocabDayBtn").onclick=()=>moveVocabularyDay(-1);
 $("nextVocabDayBtn").onclick=()=>moveVocabularyDay(1);
@@ -748,7 +781,12 @@ $("vocabDaySelect").onchange=e=>{
   activeVocabularyDay=Number(e.target.value);
   renderVocabulary();
 };
-$("startBtn").onclick=()=>startQuiz();
+$("startBtn").onclick=async()=>{
+  $("testStatus").className="status";
+  $("testStatus").textContent="최신 단어장을 확인하는 중입니다.";
+  await loadVocabularyBooks({silent:true});
+  startQuiz();
+};
 $("prevBtn").onclick=()=>{
   saveTyping();
   if(currentIndex>0){
@@ -772,6 +810,10 @@ $("newTestBtn").onclick=()=>showPage($("testSetupPage"));
 
 renderAll();
 loadVocabularyBooks();
+window.addEventListener("focus",refreshVocabularyIfStale);
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden)refreshVocabularyIfStale();
+});
 </script>
 </body>
 </html>
