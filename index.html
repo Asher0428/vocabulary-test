@@ -228,12 +228,14 @@ const VOCAB_BOOKS=[
     id:"idiom",
     title:"Idiom Part",
     type:"csv",
+    githubPath:"idioms.csv",
     url:"https://raw.githubusercontent.com/Asher0428/vocabulary/refs/heads/main/idioms.csv"
   },
   {
     id:"word",
     title:"Word Part",
     type:"csv",
+    githubPath:"words.csv",
     url:"https://github.com/Asher0428/vocabulary/raw/refs/heads/main/words.csv",
     fallbackUrls:["https://raw.githubusercontent.com/Asher0428/vocabulary/refs/heads/main/words.csv"]
   },
@@ -241,7 +243,9 @@ const VOCAB_BOOKS=[
     id:"colloquial",
     title:"Colloquial Part",
     type:"csv",
-    url:"https://raw.githubusercontent.com/Asher0428/vocabulary/refs/heads/main/colloquial.csv",
+    githubPath:"colloquial.csv",
+    url:"https://github.com/Asher0428/vocabulary/raw/refs/heads/main/colloquial.csv",
+    fallbackUrls:["https://raw.githubusercontent.com/Asher0428/vocabulary/refs/heads/main/colloquial.csv"],
     includeInTest:false
   }
 ];
@@ -380,9 +384,38 @@ function freshCsvUrl(url){
   const glue=url.includes("?")?"&":"?";
   return `${url}${glue}v=${Date.now()}`;
 }
+function decodeBase64Utf8(text){
+  const binary=atob(String(text||"").replace(/\s/g,""));
+  const bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  return new TextDecoder("utf-8").decode(bytes);
+}
+async function fetchCsvFromGithubApi(book){
+  if(!book.githubPath)return null;
+  const apiUrl=`https://api.github.com/repos/Asher0428/vocabulary/contents/${encodeURIComponent(book.githubPath)}?ref=main&v=${Date.now()}`;
+  const response=await fetch(apiUrl,{
+    cache:"no-store",
+    headers:{Accept:"application/vnd.github+json"}
+  });
+  if(!response.ok)throw new Error(`${book.title} API HTTP ${response.status}`);
+  const data=await response.json();
+  if(data&&data.encoding==="base64"&&data.content)return decodeBase64Utf8(data.content);
+  if(data&&data.download_url){
+    const rawResponse=await fetch(freshCsvUrl(data.download_url),{cache:"no-store"});
+    if(!rawResponse.ok)throw new Error(`${book.title} download HTTP ${rawResponse.status}`);
+    return await rawResponse.text();
+  }
+  throw new Error(`${book.title} API content is empty`);
+}
 async function fetchCsvText(book){
   const urls=[book.url,...(book.fallbackUrls||[])];
   let lastError=null;
+  try{
+    const apiText=await fetchCsvFromGithubApi(book);
+    if(apiText)return apiText;
+  }catch(e){
+    lastError=e;
+  }
   for(const url of urls){
     try{
       const response=await fetch(freshCsvUrl(url),{cache:"no-store",redirect:"follow"});
@@ -403,9 +436,11 @@ async function loadVocabularyBooks(options={}){
       uploadStatus.className="status";
       uploadStatus.textContent="단어장을 불러오는 중입니다.";
     }
+    const targetBookIds=Array.isArray(options.bookIds)?new Set(options.bookIds):null;
+    const targetBooks=targetBookIds?VOCAB_BOOKS.filter(book=>targetBookIds.has(book.id)):VOCAB_BOOKS;
     const loaded=[];
     const failedBooks=[];
-    for(const book of VOCAB_BOOKS){
+    for(const book of targetBooks){
       try{
         if(book.type==="csv"){
           const csvText=await fetchCsvText(book);
@@ -420,8 +455,16 @@ async function loadVocabularyBooks(options={}){
         console.error(e);
       }
     }
-    if(!loaded.length)throw new Error("empty");
-    wordList=loaded;
+    if(!loaded.length&&!wordList.length)throw new Error("empty");
+    if(targetBookIds){
+      const order=new Map(VOCAB_BOOKS.map((book,index)=>[book.id,index]));
+      wordList=[
+        ...wordList.filter(word=>!targetBookIds.has(word.bookId)),
+        ...loaded
+      ].sort((a,b)=>(order.get(a.bookId)-order.get(b.bookId))||(a.number-b.number));
+    }else{
+      wordList=loaded;
+    }
     lastVocabularyRefreshAt=Date.now();
     syncSelectionsAfterLoad();
     renderAll();
@@ -448,14 +491,23 @@ async function loadVocabularyBooks(options={}){
 }
 function refreshVocabularyIfStale(){
   if(Date.now()-lastVocabularyRefreshAt<DATA_REFRESH_INTERVAL_MS)return;
-  loadVocabularyBooks({silent:true});
+  const page=getCurrentPage();
+  if(page===$("vocabularyPage")&&activeVocabularyBookId){
+    loadVocabularyBooks({silent:true,bookIds:[activeVocabularyBookId]});
+    return;
+  }
+  if(page===$("testSetupPage")){
+    loadVocabularyBooks({silent:true,bookIds:getTestBooks().map(book=>book.id)});
+    return;
+  }
+  if(page===$("adminPage"))loadVocabularyBooks({silent:true});
 }
 function getCurrentPage(){
   return pages.find(page=>!page.classList.contains("hidden"));
 }
 function shouldAutoRefreshVocabulary(){
   const page=getCurrentPage();
-  return page===$("homePage")||page===$("vocabularyPage")||page===$("testSetupPage")||page===$("adminPage");
+  return page===$("vocabularyPage")||page===$("testSetupPage")||page===$("adminPage");
 }
 function getTestBooks(){
   return VOCAB_BOOKS.filter(book=>book.includeInTest!==false);
