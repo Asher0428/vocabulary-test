@@ -222,7 +222,7 @@
 <script>
 const ADMIN_PASSWORD="7356";
 const DAY_SIZE=40;
-const DATA_REFRESH_INTERVAL_MS=60000;
+const DATA_REFRESH_INTERVAL_MS=15000;
 const VOCAB_BOOKS=[
   {
     id:"idiom",
@@ -234,7 +234,8 @@ const VOCAB_BOOKS=[
     id:"word",
     title:"Word Part",
     type:"csv",
-    url:"https://raw.githubusercontent.com/Asher0428/vocabulary/refs/heads/main/words.csv"
+    url:"https://github.com/Asher0428/vocabulary/raw/refs/heads/main/words.csv",
+    fallbackUrls:["https://raw.githubusercontent.com/Asher0428/vocabulary/refs/heads/main/words.csv"]
   },
   {
     id:"colloquial",
@@ -379,6 +380,20 @@ function freshCsvUrl(url){
   const glue=url.includes("?")?"&":"?";
   return `${url}${glue}v=${Date.now()}`;
 }
+async function fetchCsvText(book){
+  const urls=[book.url,...(book.fallbackUrls||[])];
+  let lastError=null;
+  for(const url of urls){
+    try{
+      const response=await fetch(freshCsvUrl(url),{cache:"no-store",redirect:"follow"});
+      if(!response.ok)throw new Error(`${book.title} HTTP ${response.status}`);
+      return await response.text();
+    }catch(e){
+      lastError=e;
+    }
+  }
+  throw lastError||new Error(`${book.title} CSV fetch failed`);
+}
 async function loadVocabularyBooks(options={}){
   if(vocabularyLoadPromise)return vocabularyLoadPromise;
   const silent=options.silent===true;
@@ -393,9 +408,7 @@ async function loadVocabularyBooks(options={}){
     for(const book of VOCAB_BOOKS){
       try{
         if(book.type==="csv"){
-          const response=await fetch(freshCsvUrl(book.url),{cache:"no-store"});
-          if(!response.ok)throw new Error(`${book.title} HTTP ${response.status}`);
-          const csvText=await response.text();
+          const csvText=await fetchCsvText(book);
           const words=parseWordRows(parseCsvText(csvText));
           if(!words.length)throw new Error(`${book.title} is empty`);
           loaded.push(...decorateWords(book,words));
@@ -436,6 +449,13 @@ async function loadVocabularyBooks(options={}){
 function refreshVocabularyIfStale(){
   if(Date.now()-lastVocabularyRefreshAt<DATA_REFRESH_INTERVAL_MS)return;
   loadVocabularyBooks({silent:true});
+}
+function getCurrentPage(){
+  return pages.find(page=>!page.classList.contains("hidden"));
+}
+function shouldAutoRefreshVocabulary(){
+  const page=getCurrentPage();
+  return page===$("homePage")||page===$("vocabularyPage")||page===$("testSetupPage")||page===$("adminPage");
 }
 function getTestBooks(){
   return VOCAB_BOOKS.filter(book=>book.includeInTest!==false);
@@ -824,6 +844,9 @@ window.addEventListener("focus",refreshVocabularyIfStale);
 document.addEventListener("visibilitychange",()=>{
   if(!document.hidden)refreshVocabularyIfStale();
 });
+setInterval(()=>{
+  if(shouldAutoRefreshVocabulary())refreshVocabularyIfStale();
+},DATA_REFRESH_INTERVAL_MS);
 </script>
 </body>
 </html>
