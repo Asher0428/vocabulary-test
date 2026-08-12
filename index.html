@@ -40,6 +40,19 @@
     .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:18px 0 12px;flex-wrap:wrap}
     .word-count{font-weight:800}
     .word-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+    .vocab-search{border:1px solid var(--line);border-radius:8px;background:#fafbfc;padding:14px;margin:18px 0}
+    .search-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}
+    .search-results{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+    .search-panel{border:1px solid var(--line);border-radius:8px;background:#fff;padding:13px;min-height:92px}
+    .search-panel h3{font-size:15px;margin:0 0 10px}
+    .search-list{display:grid;gap:8px}
+    .search-item{border-top:1px solid var(--line);padding-top:8px;line-height:1.5}
+    .search-item:first-child{border-top:0;padding-top:0}
+    .search-word{font-weight:900}
+    .search-book{color:var(--muted);font-size:12px;font-weight:800;margin-left:5px}
+    .search-empty{color:var(--muted);font-size:14px;line-height:1.5}
+    .oxford-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .text-link{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--primary);font-weight:800;text-decoration:none;padding:10px 12px}
     table{width:100%;border-collapse:collapse;min-width:620px}
     th,td{text-align:center;padding:13px 15px;border-bottom:1px solid var(--line)}
     th{background:#f7f8fa;font-size:14px}
@@ -91,6 +104,7 @@
       .question-word{font-size:32px}
       .navigation{flex-direction:column}
       .toolbar{align-items:flex-start;flex-direction:column}
+      .search-row,.search-results{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -132,6 +146,25 @@
   <section id="vocabularyPage" class="card hidden">
     <h2>Vocabulary</h2>
     <div id="vocabBookChoices" class="book-grid"></div>
+    <div class="vocab-search">
+      <div class="search-row">
+        <div>
+          <label for="vocabSearchInput">단어 검색</label>
+          <input id="vocabSearchInput" type="text" placeholder="영어 단어 또는 한국어 뜻을 입력하세요" autocomplete="off" />
+        </div>
+        <button id="vocabSearchBtn" class="primary-btn" type="button">검색</button>
+      </div>
+      <div id="vocabSearchResults" class="search-results hidden">
+        <div class="search-panel">
+          <h3>내 단어장 의미</h3>
+          <div id="localMeaningResults" class="search-list"></div>
+        </div>
+        <div class="search-panel">
+          <h3>Oxford 영어사전 의미</h3>
+          <div id="oxfordMeaningResults" class="search-list"></div>
+        </div>
+      </div>
+    </div>
     <div id="vocabDayControls" class="hidden">
       <div class="day-select-row">
         <label for="vocabDaySelect">Day 선택</label>
@@ -603,6 +636,63 @@ function renderRows(tableBody,words){
     tableBody.appendChild(r);
   });
 }
+function getOxfordSearchUrl(query){
+  return `https://www.oxfordlearnersdictionaries.com/search/english/?q=${encodeURIComponent(query)}`;
+}
+function hasHangul(text){
+  return /[가-힣]/.test(String(text||""));
+}
+function getAlphabetCount(text){
+  return (String(text||"").match(/[A-Za-z]/g)||[]).length;
+}
+function renderOxfordLinks(query){
+  const searchUrl=getOxfordSearchUrl(query);
+  $("oxfordMeaningResults").innerHTML=`
+    <div class="search-empty">Oxford에서 정확한 영어 뜻과 예문을 확인하세요.</div>
+    <div class="oxford-actions">
+      <a class="text-link" href="${escapeHtml(searchUrl)}" target="_blank" rel="noopener noreferrer">Oxford 검색 열기</a>
+    </div>
+  `;
+}
+function renderLocalSearchResults(query){
+  const normalized=normalizeText(query);
+  const exact=[],partial=[];
+  wordList.forEach(word=>{
+    const wordKey=normalizeText(word.english);
+    const meaningKey=normalizeText(word.korean);
+    if(wordKey===normalized||meaningKey===normalized)exact.push(word);
+    else if(wordKey.includes(normalized)||meaningKey.includes(normalized))partial.push(word);
+  });
+  const results=[...exact,...partial].slice(0,12);
+  $("localMeaningResults").innerHTML=results.length
+    ? results.map(word=>`
+        <div class="search-item">
+          <div><span class="search-word">${escapeHtml(word.english)}</span><span class="search-book">${escapeHtml(word.bookTitle)} · Day ${word.day}</span></div>
+          <div>${escapeHtml(word.korean)}</div>
+        </div>
+      `).join("")
+    : `<div class="search-empty">내 단어장에서 찾은 결과가 없습니다.</div>`;
+}
+function searchVocabulary(){
+  const query=$("vocabSearchInput").value.trim();
+  if(!query){
+    $("vocabSearchResults").classList.add("hidden");
+    $("localMeaningResults").innerHTML="";
+    $("oxfordMeaningResults").innerHTML="";
+    return;
+  }
+  $("vocabSearchResults").classList.remove("hidden");
+  const hangulSearch=hasHangul(query);
+  const alphabetCount=getAlphabetCount(query);
+  if(!hangulSearch&&alphabetCount<2){
+    $("localMeaningResults").innerHTML=`<div class="search-empty">영어는 알파벳 두 글자 이상 입력하세요.</div>`;
+    $("oxfordMeaningResults").innerHTML=`<div class="search-empty">영어 단어를 알파벳 두 글자 이상 입력하면 Oxford 검색 버튼이 표시됩니다.</div>`;
+    return;
+  }
+  renderLocalSearchResults(query);
+  if(alphabetCount>=2)renderOxfordLinks(query);
+  else $("oxfordMeaningResults").innerHTML=`<div class="search-empty">Oxford 검색은 영어 단어를 입력하면 사용할 수 있습니다.</div>`;
+}
 function renderVocabulary(){
   renderVocabularyChoices();
   if(!activeVocabularyBookId){
@@ -859,6 +949,14 @@ $("confirmAdminAuthBtn").onclick=confirmAdminPassword;
 $("adminPasswordInput").onkeydown=e=>{
   if(e.key==="Enter")confirmAdminPassword();
   if(e.key==="Escape")closeAdminAuth();
+};
+$("vocabSearchBtn").onclick=searchVocabulary;
+$("vocabSearchInput").onkeydown=e=>{
+  if(e.key==="Enter")searchVocabulary();
+};
+$("vocabSearchInput").oninput=e=>{
+  const value=e.target.value.trim();
+  if(!value||hasHangul(value)||getAlphabetCount(value)>=2)searchVocabulary();
 };
 $("openVocabularyBtn").onclick=async()=>{
   renderVocabulary();
