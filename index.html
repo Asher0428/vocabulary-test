@@ -60,6 +60,8 @@
     .range-title{font-weight:800;margin-bottom:8px}
     .range-controls{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
     .range-controls span{text-align:center;color:var(--muted);font-weight:800}
+    .range-all{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:14px;font-weight:800;color:var(--text)}
+    .range-all input{width:16px;height:16px;flex:0 0 auto}
     .meta-pill{display:inline-flex;align-items:center;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;color:var(--muted);margin:0 5px 6px 0}
     .vocab-day-title{font-size:20px;font-weight:900;margin:12px 0}
     .progress{text-align:center;color:var(--muted);font-size:14px;font-weight:700}
@@ -530,8 +532,12 @@ function getBookDays(bookId){
 function syncDayRanges(){
   const nextRanges={};
   getTestBooks().forEach(book=>{
-    const current=selectedDayRanges[book.id]||{start:"",end:""};
-    nextRanges[book.id]={start:String(current.start??""),end:String(current.end??"")};
+    const current=selectedDayRanges[book.id]||{start:"",end:"",all:false};
+    nextRanges[book.id]={
+      start:String(current.start??""),
+      end:String(current.end??""),
+      all:current.all===true
+    };
   });
   selectedDayRanges=nextRanges;
 }
@@ -541,6 +547,7 @@ function getValidatedDayRange(bookId,requireStart=false){
   const max=days[days.length-1]||1;
   const book=VOCAB_BOOKS.find(item=>item.id===bookId);
   const range=selectedDayRanges[bookId]||{start:"",end:""};
+  if(range.all===true)return {start:min,end:max};
   const startText=String(range.start??"").trim();
   const endText=String(range.end??"").trim();
   if(!startText){
@@ -675,21 +682,33 @@ function renderSelectors(){
     const min=days[0]||1;
     const max=days[days.length-1]||1;
     const range=selectedDayRanges[bookId]||{start:"",end:""};
+    const isAll=range.all===true;
     const item=document.createElement("div");
     item.className="range-item";
     item.innerHTML=`
       <div class="range-title">${escapeHtml(book?.title||bookId)} <span class="meta-pill">Day ${min} - Day ${max}</span></div>
+      <label class="range-all">
+        <input class="day-all-input" type="checkbox" ${isAll?"checked":""} aria-label="${escapeHtml(book?.title||bookId)} 전범위 선택">
+        <span>전범위 선택</span>
+      </label>
       <div class="range-controls">
-        <input class="day-start-input" type="number" min="${min}" max="${max}" value="${escapeHtml(range.start)}" placeholder="시작" aria-label="${escapeHtml(book?.title||bookId)} 시작 Day">
+        <input class="day-start-input" type="number" min="${min}" max="${max}" value="${escapeHtml(isAll?min:range.start)}" placeholder="시작" aria-label="${escapeHtml(book?.title||bookId)} 시작 Day" ${isAll?"disabled":""}>
         <span>~</span>
-        <input class="day-end-input" type="number" min="${min}" max="${max}" value="${escapeHtml(range.end)}" placeholder="끝" aria-label="${escapeHtml(book?.title||bookId)} 끝 Day">
+        <input class="day-end-input" type="number" min="${min}" max="${max}" value="${escapeHtml(isAll?max:range.end)}" placeholder="끝" aria-label="${escapeHtml(book?.title||bookId)} 끝 Day" ${isAll?"disabled":""}>
       </div>
     `;
+    const allInput=item.querySelector(".day-all-input");
     const startInput=item.querySelector(".day-start-input");
     const endInput=item.querySelector(".day-end-input");
     const applyRange=()=>{
-      selectedDayRanges[bookId]={start:startInput.value,end:endInput.value};
+      selectedDayRanges[bookId]={start:startInput.value,end:endInput.value,all:allInput.checked};
       updateScope();
+    };
+    allInput.onchange=()=>{
+      selectedDayRanges[bookId]=allInput.checked
+        ? {start:String(min),end:String(max),all:true}
+        : {start:"",end:"",all:false};
+      renderSelectors();
     };
     startInput.onchange=applyRange;
     endInput.onchange=applyRange;
