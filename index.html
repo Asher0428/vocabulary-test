@@ -25,7 +25,7 @@
     .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px}
     .menu-btn{min-height:146px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:22px;text-align:left;transition:.15s}
     .menu-btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.06)}
-    .menu-btn:focus-visible,.home-btn:focus-visible,.admin-btn:focus-visible,.primary-btn:focus-visible,.secondary-btn:focus-visible,.danger-btn:focus-visible,.choice-btn:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}
+    .menu-btn:focus-visible,.home-btn:focus-visible,.admin-btn:focus-visible,.back-btn:focus-visible,.primary-btn:focus-visible,.secondary-btn:focus-visible,.danger-btn:focus-visible,.choice-btn:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}
     .menu-title{display:block;font-size:23px;font-weight:800;margin-bottom:9px}
     .menu-desc{color:var(--muted);line-height:1.55;font-size:14px}
     .section-note{color:var(--muted);font-size:14px;line-height:1.6;margin:-6px 0 18px}
@@ -38,6 +38,9 @@
     .status.success{color:var(--success)}
     .status.error{color:var(--danger)}
     .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:18px 0 12px;flex-wrap:wrap}
+    .sub-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+    .sub-header h2{margin:0}
+    .back-btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 13px;font-weight:800}
     .word-count{font-weight:800}
     .word-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
     .vocab-search{border:1px solid var(--line);border-radius:8px;background:#fafbfc;padding:14px;margin:18px 0}
@@ -144,45 +147,53 @@
   </section>
 
   <section id="vocabularyPage" class="card hidden">
-    <h2>Vocabulary</h2>
-    <div id="vocabBookChoices" class="book-grid"></div>
-    <div class="vocab-search">
-      <div class="search-row">
-        <div>
-          <label for="vocabSearchInput">단어 검색</label>
-          <input id="vocabSearchInput" type="text" placeholder="영어 단어 또는 한국어 뜻을 입력하세요" autocomplete="off" />
+    <div id="vocabListView">
+      <h2>Vocabulary</h2>
+      <div class="vocab-search">
+        <div class="search-row">
+          <div>
+            <label for="vocabSearchInput">단어 검색</label>
+            <input id="vocabSearchInput" type="text" placeholder="영어 단어 또는 한국어 뜻을 입력하세요" autocomplete="off" />
+          </div>
+          <button id="vocabSearchBtn" class="primary-btn" type="button">검색</button>
         </div>
-        <button id="vocabSearchBtn" class="primary-btn" type="button">검색</button>
+        <div id="vocabSearchResults" class="search-results hidden">
+          <div class="search-panel">
+            <h3>내 단어장 의미</h3>
+            <div id="localMeaningResults" class="search-list"></div>
+          </div>
+          <div class="search-panel">
+            <h3>Oxford 영어사전 의미</h3>
+            <div id="oxfordMeaningResults" class="search-list"></div>
+          </div>
+        </div>
       </div>
-      <div id="vocabSearchResults" class="search-results hidden">
-        <div class="search-panel">
-          <h3>내 단어장 의미</h3>
-          <div id="localMeaningResults" class="search-list"></div>
-        </div>
-        <div class="search-panel">
-          <h3>Oxford 영어사전 의미</h3>
-          <div id="oxfordMeaningResults" class="search-list"></div>
-        </div>
-      </div>
+      <div id="vocabBookChoices" class="book-grid"></div>
     </div>
-    <div id="vocabDayControls" class="hidden">
-      <div class="day-select-row">
-        <label for="vocabDaySelect">Day 선택</label>
-        <select id="vocabDaySelect"></select>
+    <div id="vocabDetailView" class="hidden">
+      <div class="sub-header">
+        <button id="vocabBackBtn" class="back-btn" type="button">뒤로가기</button>
+        <h2 id="vocabDetailHeading">Vocabulary</h2>
       </div>
-      <div class="toolbar">
-        <button id="prevVocabDayBtn" class="secondary-btn" type="button">이전 Day</button>
-        <div id="vocabDayTitle" class="vocab-day-title"></div>
-        <button id="nextVocabDayBtn" class="secondary-btn" type="button">다음 Day</button>
+      <div id="vocabDayControls">
+        <div class="day-select-row">
+          <label for="vocabDaySelect">Day 선택</label>
+          <select id="vocabDaySelect"></select>
+        </div>
+        <div class="toolbar">
+          <button id="prevVocabDayBtn" class="secondary-btn" type="button">이전 Day</button>
+          <div id="vocabDayTitle" class="vocab-day-title"></div>
+          <button id="nextVocabDayBtn" class="secondary-btn" type="button">다음 Day</button>
+        </div>
       </div>
-    </div>
-    <div id="vocabularyTableArea" class="word-table-wrap hidden">
-      <table>
-        <thead>
-          <tr><th>No.</th><th>English</th><th>한국어</th></tr>
-        </thead>
-        <tbody id="vocabTableBody"></tbody>
-      </table>
+      <div id="vocabularyTableArea" class="word-table-wrap">
+        <table>
+          <thead>
+            <tr><th>No.</th><th>English</th><th>한국어</th></tr>
+          </thead>
+          <tbody id="vocabTableBody"></tbody>
+        </table>
+      </div>
     </div>
   </section>
 
@@ -611,6 +622,25 @@ function getSelectedWords(requireStart=false){
   }
   return {words};
 }
+function showVocabularyListView(){
+  $("vocabListView").classList.remove("hidden");
+  $("vocabDetailView").classList.add("hidden");
+}
+function showVocabularyDetailView(){
+  $("vocabListView").classList.add("hidden");
+  $("vocabDetailView").classList.remove("hidden");
+}
+function openVocabularyBook(bookId){
+  activeVocabularyBookId=bookId;
+  activeVocabularyDay=1;
+  renderVocabulary();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function backToVocabularyList(){
+  activeVocabularyBookId=null;
+  renderVocabulary();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
 function renderVocabularyChoices(){
   const box=$("vocabBookChoices");
   box.innerHTML="";
@@ -620,11 +650,7 @@ function renderVocabularyChoices(){
     button.type="button";
     button.className="menu-btn";
     button.innerHTML=`<span class="menu-title">${escapeHtml(book.title)}</span><span class="menu-desc">${count}개 단어 · ${Math.max(1,Math.ceil(count/DAY_SIZE))} days</span>`;
-    button.onclick=()=>{
-      activeVocabularyBookId=book.id;
-      activeVocabularyDay=1;
-      renderVocabulary();
-    };
+    button.onclick=()=>openVocabularyBook(book.id);
     box.appendChild(button);
   });
 }
@@ -696,23 +722,22 @@ function searchVocabulary(){
 function renderVocabulary(){
   renderVocabularyChoices();
   if(!activeVocabularyBookId){
-    $("vocabDayControls").classList.add("hidden");
-    $("vocabularyTableArea").classList.add("hidden");
+    showVocabularyListView();
     $("vocabTableBody").innerHTML="";
     return;
   }
+  showVocabularyDetailView();
   const bookWords=wordList.filter(word=>word.bookId===activeVocabularyBookId);
   const days=[...new Set(bookWords.map(word=>word.day))].sort((a,b)=>a-b);
   if(!days.includes(activeVocabularyDay))activeVocabularyDay=days[0]||1;
   renderVocabularyDaySelect(days);
   const selected=bookWords.filter(word=>word.day===activeVocabularyDay);
   const book=VOCAB_BOOKS.find(item=>item.id===activeVocabularyBookId);
+  $("vocabDetailHeading").textContent=book?.title||"Vocabulary";
   $("vocabDayTitle").textContent=`${book?.title||"Vocabulary"} · Day ${activeVocabularyDay}`;
   $("prevVocabDayBtn").disabled=days.indexOf(activeVocabularyDay)<=0;
   $("nextVocabDayBtn").disabled=days.indexOf(activeVocabularyDay)===days.length-1;
   renderRows($("vocabTableBody"),selected);
-  $("vocabDayControls").classList.remove("hidden");
-  $("vocabularyTableArea").classList.remove("hidden");
 }
 function renderVocabularyDaySelect(days){
   const select=$("vocabDaySelect");
@@ -958,7 +983,9 @@ $("vocabSearchInput").oninput=e=>{
   const value=e.target.value.trim();
   if(!value||hasHangul(value)||getAlphabetCount(value)>=2)searchVocabulary();
 };
+$("vocabBackBtn").onclick=backToVocabularyList;
 $("openVocabularyBtn").onclick=async()=>{
+  activeVocabularyBookId=null;
   renderVocabulary();
   showPage($("vocabularyPage"));
   await loadVocabularyBooks({silent:true});
