@@ -904,18 +904,15 @@ function startQuiz(custom=null){
     status.textContent=`문제 수는 1개부터 ${pool.length}개 사이로 입력하세요.`;
     return;
   }
-  if(quizType==="multiple"&&pool.length<2){
   if(quizType==="multiple"&&choicePool.length<2){
     status.className="status error";
     status.textContent="객관식 시험에는 최소 2개 이상의 단어가 필요합니다.";
     return;
   }
-  activePool=pool;
   activePool=choicePool;
   questions=custom?shuffleArray(pool):shuffleArray(pool).slice(0,count);
   currentIndex=0;
   answers=new Array(questions.length).fill("");
-  choiceSets=questions.map(w=>quizType==="multiple"?buildChoiceSet(w,pool):[]);
   choiceSets=questions.map(w=>quizType==="multiple"?buildChoiceSet(w,choicePool):[]);
   showPage($("quizPage"));
   renderQuestion();
@@ -960,7 +957,6 @@ function submitQuiz(){
   const data=questions.map((w,i)=>{
     const userAnswer=answers[i]||"";
     const correctAnswer=getCorrectAnswer(w);
-    return{word:w,question:getQuestionText(w),userAnswer,correctAnswer,isCorrect:normalizeText(userAnswer)===normalizeText(correctAnswer)};
     return{
       word:w,
       question:getQuestionText(w),
@@ -969,7 +965,6 @@ function submitQuiz(){
       isCorrect:quizType==="typing"?null:normalizeText(userAnswer)===normalizeText(correctAnswer)
     };
   });
-  $("score").textContent=`${data.filter(x=>x.isCorrect).length} / ${questions.length}`;
   latestResultData=data;
   latestManualGrading=quizType==="typing";
   renderResult();
@@ -978,13 +973,10 @@ function submitQuiz(){
 function renderResult(){
   const sheet=$("answerSheet");
   sheet.innerHTML="";
-  data.forEach((x,i)=>{
   latestResultData.forEach((x,i)=>{
     const box=document.createElement("div");
     const state=x.isCorrect===null?"pending":x.isCorrect?"correct":"wrong";
     const resultText=x.isCorrect===null?"채점 대기":x.isCorrect?"정답":"오답";
-    box.className=`answer-item ${x.isCorrect?"correct":"wrong"}`;
-    box.innerHTML=`<p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p><p>${escapeHtml(x.word.bookTitle)} · Day ${x.word.day}</p><p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p><p>정답: ${escapeHtml(x.correctAnswer)}</p><p>결과: ${x.isCorrect?"정답":"오답"}</p>`;
     box.className=`answer-item ${state}`;
     box.innerHTML=`<p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p><p>${escapeHtml(x.word.bookTitle)} · Day ${x.word.day}</p><p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p><p>정답: ${escapeHtml(x.correctAnswer)}</p><p>결과: ${resultText}</p>`;
     if(latestManualGrading){
@@ -1005,7 +997,6 @@ function renderResult(){
     }
     sheet.appendChild(box);
   });
-  const wrong=data.filter(x=>!x.isCorrect).map(x=>x.word);
   updateResultScoreAndRetry();
 }
 function gradeTypingAnswer(index,isCorrect){
@@ -1021,9 +1012,6 @@ function updateResultScoreAndRetry(){
     ? `채점 ${graded} / ${latestResultData.length}`
     : `${correct} / ${latestResultData.length}`;
   $("retryWrongBtn").disabled=wrong.length===0;
-  $("retryWrongBtn").textContent=wrong.length===0?"모든 문제를 맞혔습니다":`오답 ${wrong.length}개 다시 풀기`;
-  $("retryWrongBtn").onclick=()=>wrong.length&&startQuiz(wrong);
-  showPage($("resultPage"));
   if(latestManualGrading&&!done){
     $("retryWrongBtn").disabled=true;
     $("retryWrongBtn").textContent="채점 완료 후 오답 다시 풀기";
@@ -1060,15 +1048,35 @@ $("openVocabularyBtn").onclick=async()=>{
   showPage($("vocabularyPage"));
   await loadVocabularyBooks({silent:true});
   renderVocabulary();
+  try{
+    renderVocabulary();
+    await loadVocabularyBooks({silent:true});
+    renderVocabulary();
+  }catch(e){
+    console.error(e);
+  }
 };
 $("openTestBtn").onclick=async()=>{
   renderSelectors();
   $("testStatus").className="status";
   $("testStatus").textContent="최신 단어장을 확인하는 중입니다.";
+  $("testStatus").textContent="";
   showPage($("testSetupPage"));
+  try{
+    renderSelectors();
+  }catch(e){
+    console.error(e);
+  }
+  $("testStatus").className="status";
+  $("testStatus").textContent="최신 단어장을 확인하는 중입니다.";
   await loadVocabularyBooks({silent:true});
   $("testStatus").textContent="";
+  try{
   renderSelectors();
+    renderSelectors();
+  }catch(e){
+    console.error(e);
+  }
 };
 $("adminRefreshBtn").onclick=()=>loadVocabularyBooks();
 $("prevVocabDayBtn").onclick=()=>moveVocabularyDay(-1);
