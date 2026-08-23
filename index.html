@@ -91,7 +91,12 @@
     .answer-item{border:1px solid var(--line);border-radius:8px;padding:15px;margin-bottom:11px}
     .answer-item.correct{border-left:6px solid var(--success)}
     .answer-item.wrong{border-left:6px solid #d64545}
+    .answer-item.pending{border-left:6px solid #c8ced6}
     .answer-item p{margin:5px 0;line-height:1.5}
+    .grading-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .grade-btn{border:1px solid var(--line);border-radius:8px;background:#fff;padding:9px 14px;font-weight:900;min-width:58px}
+    .grade-btn.correct.selected{background:var(--success);border-color:var(--success);color:#fff}
+    .grade-btn.wrong.selected{background:#d64545;border-color:#d64545;color:#fff}
     .result-actions{display:grid;gap:10px;margin-top:18px}
     .modal-backdrop{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:rgba(23,25,28,.42);padding:18px}
     .auth-dialog{width:min(100%,360px);background:#fff;border-radius:8px;padding:22px;box-shadow:0 18px 42px rgba(0,0,0,.2)}
@@ -302,6 +307,8 @@ let selectedDayRanges={};
 let activePool=[];
 let activeVocabularyBookId=null;
 let activeVocabularyDay=1;
+let latestResultData=[];
+let latestManualGrading=false;
 let lastVocabularyRefreshAt=0;
 let vocabularyLoadPromise=null;
 
@@ -890,6 +897,7 @@ function startQuiz(custom=null){
     status.textContent="단어장과 Day를 하나 이상 선택하세요.";
     return;
   }
+  const choicePool=custom?[...activePool]:pool;
   const count=custom?pool.length:Number($("questionCount").value);
   if(!Number.isInteger(count)||count<1||count>pool.length){
     status.className="status error";
@@ -897,15 +905,18 @@ function startQuiz(custom=null){
     return;
   }
   if(quizType==="multiple"&&pool.length<2){
+  if(quizType==="multiple"&&choicePool.length<2){
     status.className="status error";
     status.textContent="객관식 시험에는 최소 2개 이상의 단어가 필요합니다.";
     return;
   }
   activePool=pool;
+  activePool=choicePool;
   questions=custom?shuffleArray(pool):shuffleArray(pool).slice(0,count);
   currentIndex=0;
   answers=new Array(questions.length).fill("");
   choiceSets=questions.map(w=>quizType==="multiple"?buildChoiceSet(w,pool):[]);
+  choiceSets=questions.map(w=>quizType==="multiple"?buildChoiceSet(w,choicePool):[]);
   showPage($("quizPage"));
   renderQuestion();
 }
@@ -950,21 +961,80 @@ function submitQuiz(){
     const userAnswer=answers[i]||"";
     const correctAnswer=getCorrectAnswer(w);
     return{word:w,question:getQuestionText(w),userAnswer,correctAnswer,isCorrect:normalizeText(userAnswer)===normalizeText(correctAnswer)};
+    return{
+      word:w,
+      question:getQuestionText(w),
+      userAnswer,
+      correctAnswer,
+      isCorrect:quizType==="typing"?null:normalizeText(userAnswer)===normalizeText(correctAnswer)
+    };
   });
   $("score").textContent=`${data.filter(x=>x.isCorrect).length} / ${questions.length}`;
+  latestResultData=data;
+  latestManualGrading=quizType==="typing";
+  renderResult();
+  showPage($("resultPage"));
+}
+function renderResult(){
   const sheet=$("answerSheet");
   sheet.innerHTML="";
   data.forEach((x,i)=>{
+  latestResultData.forEach((x,i)=>{
     const box=document.createElement("div");
+    const state=x.isCorrect===null?"pending":x.isCorrect?"correct":"wrong";
+    const resultText=x.isCorrect===null?"채점 대기":x.isCorrect?"정답":"오답";
     box.className=`answer-item ${x.isCorrect?"correct":"wrong"}`;
     box.innerHTML=`<p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p><p>${escapeHtml(x.word.bookTitle)} · Day ${x.word.day}</p><p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p><p>정답: ${escapeHtml(x.correctAnswer)}</p><p>결과: ${x.isCorrect?"정답":"오답"}</p>`;
+    box.className=`answer-item ${state}`;
+    box.innerHTML=`<p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p><p>${escapeHtml(x.word.bookTitle)} · Day ${x.word.day}</p><p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p><p>정답: ${escapeHtml(x.correctAnswer)}</p><p>결과: ${resultText}</p>`;
+    if(latestManualGrading){
+      const actions=document.createElement("div");
+      actions.className="grading-actions";
+      const correctBtn=document.createElement("button");
+      correctBtn.type="button";
+      correctBtn.className=`grade-btn correct ${x.isCorrect===true?"selected":""}`;
+      correctBtn.textContent="O";
+      correctBtn.onclick=()=>gradeTypingAnswer(i,true);
+      const wrongBtn=document.createElement("button");
+      wrongBtn.type="button";
+      wrongBtn.className=`grade-btn wrong ${x.isCorrect===false?"selected":""}`;
+      wrongBtn.textContent="X";
+      wrongBtn.onclick=()=>gradeTypingAnswer(i,false);
+      actions.append(correctBtn,wrongBtn);
+      box.appendChild(actions);
+    }
     sheet.appendChild(box);
   });
   const wrong=data.filter(x=>!x.isCorrect).map(x=>x.word);
+  updateResultScoreAndRetry();
+}
+function gradeTypingAnswer(index,isCorrect){
+  latestResultData[index].isCorrect=isCorrect;
+  renderResult();
+}
+function updateResultScoreAndRetry(){
+  const graded=latestResultData.filter(x=>x.isCorrect!==null).length;
+  const correct=latestResultData.filter(x=>x.isCorrect===true).length;
+  const wrong=latestResultData.filter(x=>x.isCorrect===false).map(x=>x.word);
+  const done=graded===latestResultData.length;
+  $("score").textContent=latestManualGrading&&!done
+    ? `채점 ${graded} / ${latestResultData.length}`
+    : `${correct} / ${latestResultData.length}`;
   $("retryWrongBtn").disabled=wrong.length===0;
   $("retryWrongBtn").textContent=wrong.length===0?"모든 문제를 맞혔습니다":`오답 ${wrong.length}개 다시 풀기`;
   $("retryWrongBtn").onclick=()=>wrong.length&&startQuiz(wrong);
   showPage($("resultPage"));
+  if(latestManualGrading&&!done){
+    $("retryWrongBtn").disabled=true;
+    $("retryWrongBtn").textContent="채점 완료 후 오답 다시 풀기";
+  }else{
+    $("retryWrongBtn").textContent=wrong.length===0?"모든 문제를 맞혔습니다":`오답 ${wrong.length}개 다시 풀기`;
+  }
+}
+function retryWrongAnswers(){
+  const wrong=latestResultData.filter(x=>x.isCorrect===false).map(x=>x.word);
+  if(!wrong.length)return;
+  startQuiz(wrong);
 }
 
 $("homeBtn").onclick=()=>showPage($("homePage"));
@@ -1032,6 +1102,7 @@ $("nextBtn").onclick=()=>{
 $("typingAnswer").onkeydown=e=>{
   if(e.key==="Enter")$("nextBtn").click();
 };
+$("retryWrongBtn").onclick=retryWrongAnswers;
 $("newTestBtn").onclick=()=>showPage($("testSetupPage"));
 
 renderAll();
