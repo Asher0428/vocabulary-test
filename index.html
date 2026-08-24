@@ -326,67 +326,82 @@
   </section>
 </main>
 
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore-compat.js"></script>
 <script>
 function fallbackLoginEarly(event){
   if(event)event.preventDefault();
-  try{
-    if(typeof loginWithUserId==="function"){
-      loginWithUserId();
-      const home=document.getElementById("homePage");
-      fallbackEnsureHomeContent();
-      if(home&&!home.classList.contains("hidden"))return false;
-    }
-  }catch(e){
-    console.error(e);
-  }
-  const input=document.getElementById("userIdInput");
-  const status=document.getElementById("loginStatus");
-  const value=(input?.value||"").trim();
+  var input=document.getElementById("userIdInput");
+  var status=document.getElementById("loginStatus");
+  var value=input&&input.value?input.value.replace(/^\s+|\s+$/g,""):"";
   if(!/^\d{4}$/.test(value)){
     if(status){
       status.className="status error";
       status.textContent="숫자 4자리 ID를 입력하세요.";
     }
-    input?.select();
+    if(input&&input.select)input.select();
     return false;
   }
   try{
     localStorage.setItem("survivalEnglishCurrentUserId",value);
   }catch(e){}
   window.currentUserId=value;
-  ["loginPage","vocabularyPage","myVocabularyPage","adminPage","testSetupPage","quizPage","resultPage"].forEach(id=>{
-    document.getElementById(id)?.classList.add("hidden");
-  });
-  document.getElementById("homePage")?.classList.remove("hidden");
-  document.getElementById("homeBtn")?.classList.add("hidden");
-  document.getElementById("adminSettingsBtn")?.classList.remove("hidden");
-  const badge=document.getElementById("userIdBadge");
+  try{currentUserId=value;}catch(e){}
+  try{
+    if(typeof loadStarredWords==="function")loadStarredWords();
+    if(typeof updateUserBadge==="function")updateUserBadge();
+    if(typeof hydrateCurrentUserFromCloud==="function")hydrateCurrentUserFromCloud();
+  }catch(e){}
+  fallbackEnsureHomeContent();
+  fallbackShowPage("homePage");
+  var homeBtn=document.getElementById("homeBtn");
+  if(homeBtn)homeBtn.classList.add("hidden");
+  var adminBtn=document.getElementById("adminSettingsBtn");
+  if(adminBtn)adminBtn.classList.remove("hidden");
+  var badge=document.getElementById("userIdBadge");
   if(badge){
-    badge.textContent=`ID ${value}`;
+    badge.textContent="ID "+value;
     badge.classList.remove("hidden");
   }
-  document.getElementById("changeUserBtn")?.classList.remove("hidden");
+  var changeBtn=document.getElementById("changeUserBtn");
+  if(changeBtn)changeBtn.classList.remove("hidden");
   if(status)status.textContent="";
-  fallbackEnsureHomeContent();
   return false;
 }
 function fallbackEnsureHomeContent(){
-  const grid=document.querySelector("#homePage .menu-grid");
+  var home=document.getElementById("homePage");
+  if(!home)return;
+  home.innerHTML='<h1>생존영어</h1><div class="menu-grid">'+
+    '<button id="openVocabularyBtn" class="menu-btn" type="button" onclick="return fallbackOpenVocabulary(event)"><span class="menu-title">Vocabulary</span></button>'+
+    '<button id="openMyVocabularyBtn" class="menu-btn" type="button" onclick="return fallbackOpenMyVocabulary(event)"><span class="menu-title">My Vocabulary</span></button>'+
+    '<button id="openTestBtn" class="menu-btn" type="button" onclick="return fallbackOpenTest(event)"><span class="menu-title">Test</span></button>'+
+    '</div>';
+  var grid=document.querySelector("#homePage .menu-grid");
   if(!grid||grid.children.length)return;
-  grid.innerHTML=`
-    <button id="openVocabularyBtn" class="menu-btn" type="button" onclick="return fallbackOpenVocabulary(event)"><span class="menu-title">Vocabulary</span></button>
-    <button id="openMyVocabularyBtn" class="menu-btn" type="button" onclick="return fallbackOpenMyVocabulary(event)"><span class="menu-title">My Vocabulary</span></button>
-    <button id="openTestBtn" class="menu-btn" type="button" onclick="return fallbackOpenTest(event)"><span class="menu-title">Test</span></button>
-  `;
 }
 function fallbackShowPage(pageId){
-  ["loginPage","homePage","vocabularyPage","myVocabularyPage","adminPage","testSetupPage","quizPage","resultPage"].forEach(id=>{
-    document.getElementById(id)?.classList.add("hidden");
-  });
-  document.getElementById(pageId)?.classList.remove("hidden");
-  document.getElementById("homeBtn")?.classList.toggle("hidden",pageId==="homePage"||pageId==="loginPage");
-  document.getElementById("adminSettingsBtn")?.classList.toggle("hidden",pageId!=="homePage");
-  window.scrollTo({top:0,behavior:"smooth"});
+  var ids=["loginPage","homePage","vocabularyPage","myVocabularyPage","adminPage","testSetupPage","quizPage","resultPage"];
+  for(var i=0;i<ids.length;i++){
+    var el=document.getElementById(ids[i]);
+    if(el){
+      el.classList.add("hidden");
+      el.style.display="";
+      el.style.visibility="";
+      el.style.opacity="";
+    }
+  }
+  var page=document.getElementById(pageId);
+  if(page){
+    page.classList.remove("hidden");
+    page.style.display="block";
+    page.style.visibility="visible";
+    page.style.opacity="1";
+  }
+  var homeBtn=document.getElementById("homeBtn");
+  if(homeBtn)homeBtn.classList.toggle("hidden",pageId==="homePage"||pageId==="loginPage");
+  var adminBtn=document.getElementById("adminSettingsBtn");
+  if(adminBtn)adminBtn.classList.toggle("hidden",pageId!=="homePage");
+  window.scrollTo(0,0);
 }
 function fallbackOpenVocabulary(event){
   if(event)event.preventDefault();
@@ -424,9 +439,9 @@ function fallbackOpenTest(event){
       showPage(document.getElementById("testSetupPage"));
       if(typeof renderSelectors==="function")renderSelectors();
       if(typeof loadVocabularyBooks==="function"&&typeof renderSelectors==="function"){
-        const status=document.getElementById("testStatus");
+        var status=document.getElementById("testStatus");
         if(status)status.textContent="최신 단어장을 확인하는 중입니다.";
-        loadVocabularyBooks({silent:true}).then(()=>{
+        loadVocabularyBooks({silent:true}).then(function(){
           if(status)status.textContent="";
           renderSelectors();
         }).catch(console.error);
@@ -446,6 +461,17 @@ const DATA_REFRESH_INTERVAL_MS=15000;
 const CURRENT_USER_KEY="survivalEnglishCurrentUserId";
 const STAR_STORAGE_PREFIX="survivalEnglishStarred:";
 const TEST_HISTORY_PREFIX="survivalEnglishTestHistory:";
+const FIREBASE_CONFIG={
+  apiKey:"AIzaSyBeGLuGaxAuEh_Q-uoGTgjW6NoaoFmkPew",
+  authDomain:"voca-af3ab.firebaseapp.com",
+  databaseURL:"https://voca-af3ab-default-rtdb.firebaseio.com",
+  projectId:"voca-af3ab",
+  storageBucket:"voca-af3ab.firebasestorage.app",
+  messagingSenderId:"102803952299",
+  appId:"1:102803952299:web:854e0b0726f73893081dee",
+  measurementId:"G-9QZ60371N9"
+};
+const CLOUD_COLLECTION="survivalEnglishUsers";
 const VOCAB_BOOKS=[
   {
     id:"idiom",
@@ -487,6 +513,8 @@ var currentUserId="";
 let starredWordKeys=new Set();
 let lastVocabularyRefreshAt=0;
 let vocabularyLoadPromise=null;
+let cloudDb=null;
+let cloudSyncTimer=null;
 
 const $=id=>document.getElementById(id);
 const pages=[$("loginPage"),$("homePage"),$("vocabularyPage"),$("myVocabularyPage"),$("adminPage"),$("testSetupPage"),$("quizPage"),$("resultPage")];
@@ -507,6 +535,84 @@ function safeStorageSet(key,value){
     console.warn("localStorage write failed",e);
     return false;
   }
+}
+function isFirebaseConfigured(){
+  return Boolean(
+    FIREBASE_CONFIG.apiKey &&
+    FIREBASE_CONFIG.projectId &&
+    FIREBASE_CONFIG.appId &&
+    window.firebase &&
+    typeof firebase.initializeApp==="function"
+  );
+}
+function getCloudDb(){
+  if(cloudDb)return cloudDb;
+  if(!isFirebaseConfigured())return null;
+  try{
+    if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
+    cloudDb=firebase.firestore();
+    return cloudDb;
+  }catch(e){
+    console.warn("Firebase init failed",e);
+    return null;
+  }
+}
+function getCloudUserRef(){
+  const db=getCloudDb();
+  if(!db||!currentUserId)return null;
+  return db.collection(CLOUD_COLLECTION).doc(currentUserId);
+}
+function mergeTestHistoryItems(localItems,cloudItems){
+  const combined=[...(Array.isArray(cloudItems)?cloudItems:[]),...(Array.isArray(localItems)?localItems:[])];
+  const seen=new Set();
+  return combined
+    .filter(item=>{
+      const key=String(item?.id||item?.date||`${item?.score}-${item?.total}`);
+      if(seen.has(key))return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a,b)=>new Date(b?.date||0)-new Date(a?.date||0))
+    .slice(0,5);
+}
+async function hydrateCurrentUserFromCloud(){
+  const ref=getCloudUserRef();
+  if(!ref)return;
+  try{
+    const snap=await ref.get();
+    const data=snap.exists?snap.data():{};
+    const cloudStars=Array.isArray(data.starredWords)?data.starredWords:[];
+    const localStars=[...starredWordKeys];
+    starredWordKeys=new Set([...cloudStars,...localStars]);
+    safeStorageSet(starStorageKey(),JSON.stringify([...starredWordKeys]));
+
+    const mergedHistory=mergeTestHistoryItems(loadTestHistory(),data.testHistory);
+    safeStorageSet(testHistoryStorageKey(),JSON.stringify(mergedHistory));
+
+    renderCurrentStarSurfaces();
+    renderTestHistory();
+    syncCurrentUserToCloud();
+  }catch(e){
+    console.warn("Cloud load failed",e);
+  }
+}
+async function syncCurrentUserToCloud(){
+  const ref=getCloudUserRef();
+  if(!ref)return;
+  try{
+    await ref.set({
+      starredWords:[...starredWordKeys],
+      testHistory:loadTestHistory(),
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    },{merge:true});
+  }catch(e){
+    console.warn("Cloud save failed",e);
+  }
+}
+function scheduleCloudSync(){
+  if(!currentUserId||!getCloudDb())return;
+  clearTimeout(cloudSyncTimer);
+  cloudSyncTimer=setTimeout(syncCurrentUserToCloud,450);
 }
 function showPage(page){
   pages.forEach(p=>p.classList.add("hidden"));
@@ -536,6 +642,7 @@ function loadStarredWords(){
 function saveStarredWords(){
   if(!currentUserId)return;
   safeStorageSet(starStorageKey(),JSON.stringify([...starredWordKeys]));
+  scheduleCloudSync();
 }
 function testHistoryStorageKey(){
   return `${TEST_HISTORY_PREFIX}${currentUserId}`;
@@ -552,6 +659,7 @@ function loadTestHistory(){
 function saveTestHistory(history){
   if(!currentUserId)return;
   safeStorageSet(testHistoryStorageKey(),JSON.stringify(history.slice(0,5)));
+  scheduleCloudSync();
 }
 function formatQuizType(value){
   return value==="typing"?"주관식":"객관식";
@@ -701,6 +809,7 @@ function loginWithUserId(){
   safeStorageSet(CURRENT_USER_KEY,currentUserId);
   loadStarredWords();
   updateUserBadge();
+  hydrateCurrentUserFromCloud();
   $("loginStatus").textContent="";
   showPage($("homePage"));
 }
