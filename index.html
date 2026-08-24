@@ -140,6 +140,7 @@
 <main class="app">
   <div class="topbar">
     <button id="homeBtn" class="home-btn hidden" type="button">Home</button>
+    <button id="homeBtn" class="home-btn hidden" type="button" onclick="fallbackEnsureHomeContent(); fallbackShowPage('homePage'); return false">Home</button>
     <div class="top-actions">
       <span id="userIdBadge" class="user-pill hidden"></span>
       <button id="changeUserBtn" class="admin-btn hidden" type="button">ID 변경</button>
@@ -177,12 +178,14 @@
     <h1>생존영어</h1>
     <div class="menu-grid">
       <button id="openVocabularyBtn" class="menu-btn" type="button">
+      <button id="openVocabularyBtn" class="menu-btn" type="button" onclick="return fallbackOpenVocabulary(event)">
         <span class="menu-title">Vocabulary</span>
       </button>
-      <button id="openMyVocabularyBtn" class="menu-btn" type="button">
+      <button id="openTestBtn" class="menu-btn" type="button">
+      <button id="openMyVocabularyBtn" class="menu-btn" type="button" onclick="return fallbackOpenMyVocabulary(event)">
         <span class="menu-title">My Vocabulary</span>
       </button>
-      <button id="openTestBtn" class="menu-btn" type="button">
+      <button id="openTestBtn" class="menu-btn" type="button" onclick="return fallbackOpenTest(event)">
         <span class="menu-title">Test</span>
       </button>
     </div>
@@ -338,6 +341,7 @@ function fallbackLoginEarly(event){
     if(typeof loginWithUserId==="function"){
       loginWithUserId();
       const home=document.getElementById("homePage");
+      fallbackEnsureHomeContent();
       if(home&&!home.classList.contains("hidden"))return false;
     }
   }catch(e){
@@ -371,6 +375,74 @@ function fallbackLoginEarly(event){
   }
   document.getElementById("changeUserBtn")?.classList.remove("hidden");
   if(status)status.textContent="";
+  fallbackEnsureHomeContent();
+  return false;
+}
+function fallbackEnsureHomeContent(){
+  const grid=document.querySelector("#homePage .menu-grid");
+  if(!grid||grid.children.length)return;
+  grid.innerHTML=`
+    <button id="openVocabularyBtn" class="menu-btn" type="button" onclick="return fallbackOpenVocabulary(event)"><span class="menu-title">Vocabulary</span></button>
+    <button id="openMyVocabularyBtn" class="menu-btn" type="button" onclick="return fallbackOpenMyVocabulary(event)"><span class="menu-title">My Vocabulary</span></button>
+    <button id="openTestBtn" class="menu-btn" type="button" onclick="return fallbackOpenTest(event)"><span class="menu-title">Test</span></button>
+  `;
+}
+function fallbackShowPage(pageId){
+  ["loginPage","homePage","vocabularyPage","myVocabularyPage","adminPage","testSetupPage","quizPage","resultPage"].forEach(id=>{
+    document.getElementById(id)?.classList.add("hidden");
+  });
+  document.getElementById(pageId)?.classList.remove("hidden");
+  document.getElementById("homeBtn")?.classList.toggle("hidden",pageId==="homePage"||pageId==="loginPage");
+  document.getElementById("adminSettingsBtn")?.classList.toggle("hidden",pageId!=="homePage");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function fallbackOpenVocabulary(event){
+  if(event)event.preventDefault();
+  try{
+    if(typeof showPage==="function"&&typeof renderVocabulary==="function"){
+      if(typeof activeVocabularyBookId!=="undefined")activeVocabularyBookId=null;
+      showPage(document.getElementById("vocabularyPage"));
+      renderVocabulary();
+      if(typeof loadVocabularyBooks==="function")loadVocabularyBooks({silent:true}).then(renderVocabulary).catch(console.error);
+      return false;
+    }
+  }catch(e){console.error(e);}
+  fallbackShowPage("vocabularyPage");
+  return false;
+}
+function fallbackOpenMyVocabulary(event){
+  if(event)event.preventDefault();
+  try{
+    if(typeof showPage==="function"){
+      showPage(document.getElementById("myVocabularyPage"));
+      if(typeof loadVocabularyBooks==="function"&&typeof renderMyVocabulary==="function"){
+        loadVocabularyBooks({silent:true}).then(renderMyVocabulary).catch(console.error);
+      }else if(typeof renderMyVocabulary==="function")renderMyVocabulary();
+      return false;
+    }
+  }catch(e){console.error(e);}
+  fallbackShowPage("myVocabularyPage");
+  return false;
+}
+function fallbackOpenTest(event){
+  if(event)event.preventDefault();
+  try{
+    if(typeof closeTestHistory==="function")closeTestHistory();
+    if(typeof showPage==="function"){
+      showPage(document.getElementById("testSetupPage"));
+      if(typeof renderSelectors==="function")renderSelectors();
+      if(typeof loadVocabularyBooks==="function"&&typeof renderSelectors==="function"){
+        const status=document.getElementById("testStatus");
+        if(status)status.textContent="최신 단어장을 확인하는 중입니다.";
+        loadVocabularyBooks({silent:true}).then(()=>{
+          if(status)status.textContent="";
+          renderSelectors();
+        }).catch(console.error);
+      }
+      return false;
+    }
+  }catch(e){console.error(e);}
+  fallbackShowPage("testSetupPage");
   return false;
 }
 </script>
