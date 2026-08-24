@@ -167,9 +167,9 @@
     <h1>생존영어</h1>
     <div class="form-group">
       <label for="userIdInput">사용자 ID</label>
-      <input id="userIdInput" type="text" inputmode="numeric" maxlength="4" placeholder="숫자 4자리" autocomplete="off" />
+      <input id="userIdInput" type="text" inputmode="numeric" maxlength="4" placeholder="숫자 4자리" autocomplete="off" onkeydown="if(event.key==='Enter')return fallbackLoginEarly(event)" />
     </div>
-    <button id="loginBtn" class="primary-btn full" type="button">시작하기</button>
+    <button id="loginBtn" class="primary-btn full" type="button" onclick="return fallbackLoginEarly(event)">시작하기</button>
     <div id="loginStatus" class="status"></div>
   </section>
 
@@ -332,6 +332,50 @@
 </main>
 
 <script>
+function fallbackLoginEarly(event){
+  if(event)event.preventDefault();
+  try{
+    if(typeof loginWithUserId==="function"){
+      loginWithUserId();
+      const home=document.getElementById("homePage");
+      if(home&&!home.classList.contains("hidden"))return false;
+    }
+  }catch(e){
+    console.error(e);
+  }
+  const input=document.getElementById("userIdInput");
+  const status=document.getElementById("loginStatus");
+  const value=(input?.value||"").trim();
+  if(!/^\d{4}$/.test(value)){
+    if(status){
+      status.className="status error";
+      status.textContent="숫자 4자리 ID를 입력하세요.";
+    }
+    input?.select();
+    return false;
+  }
+  try{
+    localStorage.setItem("survivalEnglishCurrentUserId",value);
+  }catch(e){}
+  window.currentUserId=value;
+  ["loginPage","vocabularyPage","myVocabularyPage","adminPage","testSetupPage","quizPage","resultPage"].forEach(id=>{
+    document.getElementById(id)?.classList.add("hidden");
+  });
+  document.getElementById("homePage")?.classList.remove("hidden");
+  document.getElementById("homeBtn")?.classList.add("hidden");
+  document.getElementById("adminSettingsBtn")?.classList.remove("hidden");
+  const badge=document.getElementById("userIdBadge");
+  if(badge){
+    badge.textContent=`ID ${value}`;
+    badge.classList.remove("hidden");
+  }
+  document.getElementById("changeUserBtn")?.classList.remove("hidden");
+  if(status)status.textContent="";
+  return false;
+}
+</script>
+
+<script>
 const ADMIN_PASSWORD="7356";
 const DAY_SIZE=40;
 const DATA_REFRESH_INTERVAL_MS=15000;
@@ -375,7 +419,7 @@ let latestResultData=[];
 let latestManualGrading=false;
 let latestResultRecorded=false;
 let currentQuizMeta=null;
-let currentUserId="";
+var currentUserId="";
 let starredWordKeys=new Set();
 let lastVocabularyRefreshAt=0;
 let vocabularyLoadPromise=null;
@@ -1368,9 +1412,9 @@ function retryWrongAnswers(){
   startQuiz(wrong);
 }
 
-$("loginBtn").onclick=loginWithUserId;
+$("loginBtn").onclick=fallbackLoginEarly;
 $("userIdInput").onkeydown=e=>{
-  if(e.key==="Enter")loginWithUserId();
+  if(e.key==="Enter")fallbackLoginEarly(e);
 };
 $("changeUserBtn").onclick=changeUser;
 $("homeBtn").onclick=()=>showPage($("homePage"));
