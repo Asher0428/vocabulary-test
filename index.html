@@ -14,7 +14,6 @@
     .app{width:min(94%,860px);margin:24px auto 36px}
     .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;min-height:38px}
     .top-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
-    .home-btn,.admin-btn{border:1px solid var(--line);background:#fff;border-radius:8px;font-weight:700}
     .home-btn,.admin-btn,.user-pill{border:1px solid var(--line);background:#fff;border-radius:8px;font-weight:700}
     .home-btn{padding:9px 13px}
     .admin-btn{padding:7px 10px;font-size:12px;line-height:1}
@@ -139,12 +138,10 @@
 <body>
 <main class="app">
   <div class="topbar">
-    <button id="homeBtn" class="home-btn hidden" type="button">Home</button>
     <button id="homeBtn" class="home-btn hidden" type="button" onclick="fallbackEnsureHomeContent(); fallbackShowPage('homePage'); return false">Home</button>
     <div class="top-actions">
       <span id="userIdBadge" class="user-pill hidden"></span>
       <button id="changeUserBtn" class="admin-btn hidden" type="button">ID 변경</button>
-      <button id="adminSettingsBtn" class="admin-btn" type="button">Admin Settings</button>
       <button id="adminSettingsBtn" class="admin-btn hidden" type="button">Admin Settings</button>
     </div>
   </div>
@@ -163,7 +160,6 @@
     </div>
   </div>
 
-  <section id="homePage" class="card">
   <section id="loginPage" class="card">
     <h1>생존영어</h1>
     <div class="form-group">
@@ -177,11 +173,9 @@
   <section id="homePage" class="card hidden">
     <h1>생존영어</h1>
     <div class="menu-grid">
-      <button id="openVocabularyBtn" class="menu-btn" type="button">
       <button id="openVocabularyBtn" class="menu-btn" type="button" onclick="return fallbackOpenVocabulary(event)">
         <span class="menu-title">Vocabulary</span>
       </button>
-      <button id="openTestBtn" class="menu-btn" type="button">
       <button id="openMyVocabularyBtn" class="menu-btn" type="button" onclick="return fallbackOpenMyVocabulary(event)">
         <span class="menu-title">My Vocabulary</span>
       </button>
@@ -204,7 +198,6 @@
         </div>
         <div id="vocabSearchResults" class="search-results hidden">
           <div class="search-panel">
-            <h3>내 단어장 의미</h3>
             <h3>My Vocabulary 의미</h3>
             <div id="localMeaningResults" class="search-list"></div>
           </div>
@@ -235,7 +228,6 @@
       <div id="vocabularyTableArea" class="word-table-wrap">
         <table>
           <thead>
-            <tr><th>No.</th><th>English</th><th>한국어</th></tr>
             <tr><th>별표</th><th>No.</th><th>English</th><th>한국어</th></tr>
           </thead>
           <tbody id="vocabTableBody"></tbody>
@@ -497,7 +489,6 @@ let lastVocabularyRefreshAt=0;
 let vocabularyLoadPromise=null;
 
 const $=id=>document.getElementById(id);
-const pages=[$("homePage"),$("vocabularyPage"),$("adminPage"),$("testSetupPage"),$("quizPage"),$("resultPage")];
 const pages=[$("loginPage"),$("homePage"),$("vocabularyPage"),$("myVocabularyPage"),$("adminPage"),$("testSetupPage"),$("quizPage"),$("resultPage")];
 
 function safeStorageGet(key,fallback=""){
@@ -520,7 +511,6 @@ function safeStorageSet(key,value){
 function showPage(page){
   pages.forEach(p=>p.classList.add("hidden"));
   page.classList.remove("hidden");
-  $("homeBtn").classList.toggle("hidden",page===$("homePage"));
   $("homeBtn").classList.toggle("hidden",page===$("homePage")||page===$("loginPage"));
   $("adminSettingsBtn").classList.toggle("hidden",page!==$("homePage"));
   $("userIdBadge").classList.toggle("hidden",!currentUserId);
@@ -1064,7 +1054,6 @@ function renderRows(tableBody,words){
   tableBody.innerHTML="";
   words.forEach((w,i)=>{
     const r=document.createElement("tr");
-    r.innerHTML=`<td>${i+1}</td><td>${escapeHtml(w.english)}</td><td>${escapeHtml(w.korean)}</td>`;
     const starCell=document.createElement("td");
     starCell.appendChild(renderStarButton(w));
     r.appendChild(starCell);
@@ -1100,14 +1089,6 @@ function renderLocalSearchResults(query){
     else if(wordKey.includes(normalized)||meaningKey.includes(normalized))partial.push(word);
   });
   const results=[...exact,...partial].slice(0,12);
-  $("localMeaningResults").innerHTML=results.length
-    ? results.map(word=>`
-        <div class="search-item">
-          <div><span class="search-word">${escapeHtml(word.english)}</span><span class="search-book">${escapeHtml(word.bookTitle)} · Day ${word.day}</span></div>
-          <div>${escapeHtml(word.korean)}</div>
-        </div>
-      `).join("")
-    : `<div class="search-empty">내 단어장에서 찾은 결과가 없습니다.</div>`;
   const container=$("localMeaningResults");
   container.innerHTML="";
   if(!results.length){
@@ -1376,7 +1357,6 @@ function saveTyping(){
 function renderQuestion(){
   const q=questions[currentIndex];
   $("progress").textContent=`${currentIndex+1} / ${questions.length}`;
-  $("questionMeta").textContent=`${q.bookTitle} · Day ${q.day}`;
   $("questionMeta").innerHTML="";
   $("questionMeta").append(`${q.bookTitle} · Day ${q.day}`);
   $("questionMeta").appendChild(renderStarButton(q,"inline-star"));
@@ -1576,7 +1556,6 @@ $("typingAnswer").onkeydown=e=>{
   if(e.key==="Enter")$("nextBtn").click();
 };
 $("retryWrongBtn").onclick=retryWrongAnswers;
-$("newTestBtn").onclick=()=>showPage($("testSetupPage"));
 $("newTestBtn").onclick=()=>{
   closeTestHistory();
   showPage($("testSetupPage"));
