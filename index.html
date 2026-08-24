@@ -384,6 +384,23 @@ const $=id=>document.getElementById(id);
 const pages=[$("homePage"),$("vocabularyPage"),$("adminPage"),$("testSetupPage"),$("quizPage"),$("resultPage")];
 const pages=[$("loginPage"),$("homePage"),$("vocabularyPage"),$("myVocabularyPage"),$("adminPage"),$("testSetupPage"),$("quizPage"),$("resultPage")];
 
+function safeStorageGet(key,fallback=""){
+  try{
+    return localStorage.getItem(key)??fallback;
+  }catch(e){
+    console.warn("localStorage read failed",e);
+    return fallback;
+  }
+}
+function safeStorageSet(key,value){
+  try{
+    localStorage.setItem(key,value);
+    return true;
+  }catch(e){
+    console.warn("localStorage write failed",e);
+    return false;
+  }
+}
 function showPage(page){
   pages.forEach(p=>p.classList.add("hidden"));
   page.classList.remove("hidden");
@@ -404,7 +421,7 @@ function starStorageKey(){
 }
 function loadStarredWords(){
   try{
-    const saved=JSON.parse(localStorage.getItem(starStorageKey())||"[]");
+    const saved=JSON.parse(safeStorageGet(starStorageKey(),"[]"));
     starredWordKeys=new Set(Array.isArray(saved)?saved:[]);
   }catch(e){
     starredWordKeys=new Set();
@@ -412,7 +429,7 @@ function loadStarredWords(){
 }
 function saveStarredWords(){
   if(!currentUserId)return;
-  localStorage.setItem(starStorageKey(),JSON.stringify([...starredWordKeys]));
+  safeStorageSet(starStorageKey(),JSON.stringify([...starredWordKeys]));
 }
 function testHistoryStorageKey(){
   return `${TEST_HISTORY_PREFIX}${currentUserId}`;
@@ -420,7 +437,7 @@ function testHistoryStorageKey(){
 function loadTestHistory(){
   if(!currentUserId)return[];
   try{
-    const saved=JSON.parse(localStorage.getItem(testHistoryStorageKey())||"[]");
+    const saved=JSON.parse(safeStorageGet(testHistoryStorageKey(),"[]"));
     return Array.isArray(saved)?saved:[];
   }catch(e){
     return [];
@@ -428,7 +445,7 @@ function loadTestHistory(){
 }
 function saveTestHistory(history){
   if(!currentUserId)return;
-  localStorage.setItem(testHistoryStorageKey(),JSON.stringify(history.slice(0,5)));
+  safeStorageSet(testHistoryStorageKey(),JSON.stringify(history.slice(0,5)));
 }
 function formatQuizType(value){
   return value==="typing"?"주관식":"객관식";
@@ -575,7 +592,7 @@ function loginWithUserId(){
     return;
   }
   currentUserId=value;
-  localStorage.setItem(CURRENT_USER_KEY,currentUserId);
+  safeStorageSet(CURRENT_USER_KEY,currentUserId);
   loadStarredWords();
   updateUserBadge();
   $("loginStatus").textContent="";
@@ -584,7 +601,7 @@ function loginWithUserId(){
 function changeUser(){
   currentUserId="";
   starredWordKeys=new Set();
-  $("userIdInput").value=localStorage.getItem(CURRENT_USER_KEY)||"";
+  $("userIdInput").value=safeStorageGet(CURRENT_USER_KEY,"");
   $("loginStatus").textContent="";
   updateUserBadge();
   showPage($("loginPage"));
@@ -1450,7 +1467,7 @@ $("newTestBtn").onclick=()=>{
 };
 
 renderAll();
-$("userIdInput").value=localStorage.getItem(CURRENT_USER_KEY)||"";
+$("userIdInput").value=safeStorageGet(CURRENT_USER_KEY,"");
 loadVocabularyBooks();
 window.addEventListener("focus",refreshVocabularyIfStale);
 document.addEventListener("visibilitychange",()=>{
