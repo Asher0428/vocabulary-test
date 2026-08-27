@@ -65,6 +65,14 @@
     th,td{text-align:center;padding:13px 15px;border-bottom:1px solid var(--line)}
     th{background:#f7f8fa;font-size:14px}
     tr:last-child td{border-bottom:0}
+    .vocab-row.has-synonyms{cursor:pointer}
+    .vocab-row.has-synonyms:hover{background:#fafbfc}
+    .synonym-toggle{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font-size:12px;font-weight:900;padding:4px 8px;margin-left:6px}
+    .synonym-detail-row td{text-align:left;background:#fafbfc;padding:0}
+    .synonym-detail{padding:13px 15px;line-height:1.55}
+    .synonym-detail-title{font-size:12px;font-weight:900;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+    .synonym-list{font-weight:800;color:var(--text);word-break:break-word}
+    .synonym-origin{margin-top:6px;color:var(--muted);font-size:13px}
     .form-group{margin-bottom:18px}
     label{display:block;font-weight:800;margin-bottom:8px}
     input[type=number],input[type=text],input[type=password],select{width:100%;padding:13px 14px;border:1px solid #d5d9dd;border-radius:8px;background:#fff;font-size:16px}
@@ -496,6 +504,14 @@ const VOCAB_BOOKS=[
     url:"https://github.com/Asher0428/vocabulary/raw/refs/heads/main/colloquial.csv",
     fallbackUrls:["https://raw.githubusercontent.com/Asher0428/vocabulary/refs/heads/main/colloquial.csv"],
     includeInTest:false
+  },
+  {
+    id:"toefl",
+    title:"TOEFL Part",
+    type:"csv",
+    githubPath:"TOEFL.csv",
+    url:"https://github.com/Asher0428/vocabulary/raw/refs/heads/main/TOEFL.csv",
+    fallbackUrls:["https://raw.githubusercontent.com/Asher0428/vocabulary/refs/heads/main/TOEFL.csv"]
   }
 ];
 
@@ -692,10 +708,11 @@ function renderTestHistory(){
       ? item.questions.map(q=>{
         const resultText=q.isCorrect?"정답":"오답";
         const resultClass=q.isCorrect?"correct":"wrong";
+        const synonymMeta=q.isSynonym?` · ${escapeHtml(q.parentEnglish)}의 동의어`:"";
         return `
           <div class="history-question ${resultClass}">
             <div><strong>${escapeHtml(q.number)}. ${escapeHtml(q.question)}</strong> <span class="meta-pill">${resultText}</span></div>
-            <div class="history-meta">${escapeHtml(q.bookTitle||"단어장")} · Day ${escapeHtml(q.day||"")}</div>
+            <div class="history-meta">${escapeHtml(q.bookTitle||"단어장")} · Day ${escapeHtml(q.day||"")}${synonymMeta}</div>
             <div class="history-answer">내 답: ${escapeHtml(q.userAnswer||"미응답")}</div>
             <div class="history-answer">정답: ${escapeHtml(q.correctAnswer||"")}</div>
             <div class="history-answer">단어: ${escapeHtml(q.english||"")} / ${escapeHtml(q.korean||"")}</div>
@@ -751,6 +768,8 @@ function recordTestHistoryIfReady(){
       day:x.word.day,
       english:x.word.english,
       korean:x.word.korean,
+      isSynonym:x.word.isSynonym===true,
+      parentEnglish:x.word.parentEnglish||"",
       question:x.question,
       userAnswer:x.userAnswer||"미응답",
       correctAnswer:x.correctAnswer,
@@ -782,7 +801,10 @@ function renderStarButton(word,extraClass=""){
   button.textContent=isStarred(word)?"★":"☆";
   button.title=isStarred(word)?"My Vocabulary에서 제거":"My Vocabulary에 추가";
   button.setAttribute("aria-label",button.title);
-  button.onclick=()=>toggleStar(word);
+  button.onclick=e=>{
+    e.stopPropagation();
+    toggleStar(word);
+  };
   return button;
 }
 function renderCurrentStarSurfaces(){
@@ -893,6 +915,43 @@ function parseCsvText(text){
   }
   return rows;
 }
+function splitMeaningGroups(text){
+  const groups=String(text??"")
+    .split(";")
+    .map(item=>item.trim())
+    .filter(Boolean);
+  return groups.length?groups:[String(text??"").trim()].filter(Boolean);
+}
+function uniqueTextItems(items){
+  const unique=[],seen=new Set();
+  items.forEach(item=>{
+    const text=String(item??"").trim();
+    const key=normalizeText(text);
+    if(text&&!seen.has(key)){
+      seen.add(key);
+      unique.push(text);
+    }
+  });
+  return unique;
+}
+function parseSynonymGroups(text){
+  return String(text??"")
+    .split(";")
+    .map(group=>uniqueTextItems(group.split(/\s*(?:,|\|)\s*/)))
+    .filter(group=>group.length);
+}
+function flattenSynonymGroups(groups){
+  return uniqueTextItems((Array.isArray(groups)?groups:[]).flat());
+}
+function hasSynonyms(word){
+  return Array.isArray(word.synonyms)&&word.synonyms.length>0;
+}
+function formatSynonyms(word){
+  if(Array.isArray(word.synonymGroups)&&word.synonymGroups.length){
+    return word.synonymGroups.map(group=>group.join(" | ")).join(" ; ");
+  }
+  return Array.isArray(word.synonyms)?word.synonyms.join(" | "):"";
+}
 function parseWordRows(rows){
   if(!Array.isArray(rows)||!rows.length)return[];
   const cleaned=rows.filter(r=>Array.isArray(r)&&r.some(c=>String(c??"").trim()!==""));
@@ -900,17 +959,29 @@ function parseWordRows(rows){
   const header=cleaned[0].map(c=>String(c??"").trim().toLowerCase().replace(/\s+/g,""));
   const englishHeaders=["영어단어","영어","english","word","vocabulary","phrase","idiom"];
   const koreanHeaders=["한국어뜻","한국어","뜻","korean","meaning","mean"];
+  const synonymHeaders=["동의어","유의어","synonym","synonyms"];
   const numberHeaders=["no.","no","number","번호"];
   const englishIndex=header.findIndex(value=>englishHeaders.includes(value));
   const koreanIndex=header.findIndex(value=>koreanHeaders.includes(value));
+  const synonymIndex=header.findIndex(value=>synonymHeaders.includes(value));
   const hasHeader=englishIndex>=0&&koreanIndex>=0;
   const data=hasHeader?cleaned.slice(1):cleaned;
   const fallbackEnglishIndex=numberHeaders.includes(header[0])?1:0;
   const fallbackKoreanIndex=numberHeaders.includes(header[0])?2:1;
+  const fallbackSynonymIndex=numberHeaders.includes(header[0])?3:2;
   const sourceEnglishIndex=hasHeader?englishIndex:fallbackEnglishIndex;
   const sourceKoreanIndex=hasHeader?koreanIndex:fallbackKoreanIndex;
+  const sourceSynonymIndex=hasHeader?synonymIndex:fallbackSynonymIndex;
   const parsed=data
-    .map(r=>({english:String(r[sourceEnglishIndex]??"").trim(),korean:String(r[sourceKoreanIndex]??"").trim()}))
+    .map(r=>{
+      const synonymGroups=sourceSynonymIndex>=0?parseSynonymGroups(r[sourceSynonymIndex]):[];
+      return {
+        english:String(r[sourceEnglishIndex]??"").trim(),
+        korean:String(r[sourceKoreanIndex]??"").trim(),
+        synonymGroups,
+        synonyms:flattenSynonymGroups(synonymGroups)
+      };
+    })
     .filter(w=>w.english&&w.korean);
   const unique=[],seen=new Set();
   parsed.forEach(w=>{
@@ -1071,8 +1142,10 @@ function syncSelectionsAfterLoad(){
 }
 function getBookSummaries(){
   return VOCAB_BOOKS.map(book=>{
-    const count=wordList.filter(word=>word.bookId===book.id).length;
-    return `${book.title} ${count}개`;
+    const words=wordList.filter(word=>word.bookId===book.id);
+    const count=words.length;
+    const quizCount=book.includeInTest===false?0:expandWordsForQuiz(words).length;
+    return book.includeInTest===false?`${book.title} ${count}개`:`${book.title} ${count}개/${quizCount}문제`;
   });
 }
 function getBookDays(bookId){
@@ -1127,6 +1200,50 @@ function getSelectedWords(requireStart=false){
   }
   return {words};
 }
+function makeQuizWord(base,english,korean,options={}){
+  const acceptedEnglish=uniqueTextItems([english,...(options.acceptedEnglish||[])]);
+  return {
+    ...base,
+    english,
+    korean,
+    sourceEnglish:base.english,
+    sourceKorean:base.korean,
+    parentEnglish:options.parentEnglish||base.english,
+    isSynonym:options.isSynonym===true,
+    acceptedEnglish
+  };
+}
+function expandWordForQuiz(word){
+  const meanings=splitMeaningGroups(word.korean);
+  const synonymGroups=Array.isArray(word.synonymGroups)?word.synonymGroups:[];
+  const groupCount=Math.max(meanings.length,synonymGroups.length,1);
+  const expanded=[];
+  for(let index=0;index<groupCount;index++){
+    const korean=meanings[index]||meanings[0]||word.korean;
+    const group=synonymGroups[index]||(synonymGroups.length===1?synonymGroups[0]:[]);
+    const acceptedEnglish=uniqueTextItems([word.english,...group]);
+    expanded.push(makeQuizWord(word,word.english,korean,{acceptedEnglish,parentEnglish:word.english}));
+    group.forEach(synonym=>{
+      expanded.push(makeQuizWord(word,synonym,korean,{
+        acceptedEnglish,
+        parentEnglish:word.english,
+        isSynonym:true
+      }));
+    });
+  }
+  const unique=[],seen=new Set();
+  expanded.forEach(item=>{
+    const key=`${item.bookId}|${normalizeText(item.english)}|${normalizeText(item.korean)}`;
+    if(!seen.has(key)){
+      seen.add(key);
+      unique.push(item);
+    }
+  });
+  return unique;
+}
+function expandWordsForQuiz(words){
+  return words.flatMap(expandWordForQuiz);
+}
 function showVocabularyListView(){
   $("vocabListView").classList.remove("hidden");
   $("vocabDetailView").classList.add("hidden");
@@ -1159,15 +1276,56 @@ function renderVocabularyChoices(){
     box.appendChild(button);
   });
 }
+function renderSynonymDetailRow(tableBody,word,colspan){
+  const detailRow=document.createElement("tr");
+  detailRow.className="synonym-detail-row hidden";
+  detailRow.innerHTML=`
+    <td colspan="${colspan}">
+      <div class="synonym-detail">
+        <div class="synonym-detail-title">Synonyms</div>
+        <div class="synonym-list">${escapeHtml(formatSynonyms(word))}</div>
+        <div class="synonym-origin">${escapeHtml(word.english)} · ${escapeHtml(word.korean)}</div>
+      </div>
+    </td>
+  `;
+  tableBody.appendChild(detailRow);
+  return detailRow;
+}
+function wireSynonymToggle(row,detailRow,word){
+  if(!hasSynonyms(word))return;
+  row.classList.add("has-synonyms");
+  row.title="동의어 보기";
+  row.setAttribute("tabindex","0");
+  row.setAttribute("role","button");
+  row.setAttribute("aria-expanded","false");
+  const toggle=()=>{
+    const willOpen=detailRow.classList.contains("hidden");
+    detailRow.classList.toggle("hidden",!willOpen);
+    row.setAttribute("aria-expanded",willOpen?"true":"false");
+  };
+  row.onclick=toggle;
+  row.onkeydown=e=>{
+    if(e.key==="Enter"||e.key===" "){
+      e.preventDefault();
+      toggle();
+    }
+  };
+}
 function renderRows(tableBody,words){
   tableBody.innerHTML="";
   words.forEach((w,i)=>{
     const r=document.createElement("tr");
+    r.className="vocab-row";
     const starCell=document.createElement("td");
     starCell.appendChild(renderStarButton(w));
     r.appendChild(starCell);
-    r.insertAdjacentHTML("beforeend",`<td>${i+1}</td><td>${escapeHtml(w.english)}</td><td>${escapeHtml(w.korean)}</td>`);
+    const synonymBadge=hasSynonyms(w)?`<span class="synonym-toggle">Syn</span>`:"";
+    r.insertAdjacentHTML("beforeend",`<td>${i+1}</td><td>${escapeHtml(w.english)}${synonymBadge}</td><td>${escapeHtml(w.korean)}</td>`);
     tableBody.appendChild(r);
+    if(hasSynonyms(w)){
+      const detailRow=renderSynonymDetailRow(tableBody,w,4);
+      wireSynonymToggle(r,detailRow,w);
+    }
   });
 }
 function getOxfordSearchUrl(query){
@@ -1194,8 +1352,9 @@ function renderLocalSearchResults(query){
   wordList.forEach(word=>{
     const wordKey=normalizeText(word.english);
     const meaningKey=normalizeText(word.korean);
-    if(wordKey===normalized||meaningKey===normalized)exact.push(word);
-    else if(wordKey.includes(normalized)||meaningKey.includes(normalized))partial.push(word);
+    const synonymKeys=(word.synonyms||[]).map(item=>normalizeText(item));
+    if(wordKey===normalized||meaningKey===normalized||synonymKeys.includes(normalized))exact.push(word);
+    else if(wordKey.includes(normalized)||meaningKey.includes(normalized)||synonymKeys.some(key=>key.includes(normalized)))partial.push(word);
   });
   const results=[...exact,...partial].slice(0,12);
   const container=$("localMeaningResults");
@@ -1207,9 +1366,13 @@ function renderLocalSearchResults(query){
   results.forEach(word=>{
     const item=document.createElement("div");
     item.className="search-item";
+    const synonymLine=hasSynonyms(word)
+      ? `<div class="history-answer">Synonyms: ${escapeHtml(formatSynonyms(word))}</div>`
+      : "";
     item.innerHTML=`
       <div><span class="search-word">${escapeHtml(word.english)}</span><span class="search-book">${escapeHtml(word.bookTitle)} · Day ${word.day}</span></div>
       <div>${escapeHtml(word.korean)}</div>
+      ${synonymLine}
     `;
     item.querySelector(".search-word").after(renderStarButton(word,"inline-star"));
     container.appendChild(item);
@@ -1256,7 +1419,16 @@ function renderVocabulary(){
   renderRows($("vocabTableBody"),selected);
 }
 function getStarredWords(){
-  return wordList.filter(word=>isStarred(word));
+  const candidates=[...wordList,...expandWordsForQuiz(wordList)];
+  const unique=[],seen=new Set();
+  candidates.forEach(word=>{
+    const key=wordKey(word);
+    if(!seen.has(key)){
+      seen.add(key);
+      unique.push(word);
+    }
+  });
+  return unique.filter(word=>isStarred(word));
 }
 function renderMyVocabulary(){
   const words=getStarredWords();
@@ -1269,16 +1441,22 @@ function renderMyVocabulary(){
   body.innerHTML="";
   words.forEach(word=>{
     const row=document.createElement("tr");
+    row.className="vocab-row";
     const starCell=document.createElement("td");
     starCell.appendChild(renderStarButton(word));
     row.appendChild(starCell);
+    const synonymBadge=hasSynonyms(word)?`<span class="synonym-toggle">Syn</span>`:"";
     row.insertAdjacentHTML("beforeend",`
-      <td>${escapeHtml(word.english)}</td>
+      <td>${escapeHtml(word.english)}${synonymBadge}</td>
       <td>${escapeHtml(word.korean)}</td>
       <td>${escapeHtml(word.bookTitle)}</td>
       <td>Day ${word.day}</td>
     `);
     body.appendChild(row);
+    if(hasSynonyms(word)){
+      const detailRow=renderSynonymDetailRow(body,word,5);
+      wireSynonymToggle(row,detailRow,word);
+    }
   });
 }
 function renderVocabularyDaySelect(days){
@@ -1306,10 +1484,12 @@ function renderAdmin(){
   const box=$("bookConfigList");
   box.innerHTML="";
   VOCAB_BOOKS.forEach(book=>{
-    const count=wordList.filter(word=>word.bookId===book.id).length;
+    const words=wordList.filter(word=>word.bookId===book.id);
+    const count=words.length;
+    const quizCount=book.includeInTest===false?0:expandWordsForQuiz(words).length;
     const div=document.createElement("div");
     div.className="section-note";
-    div.innerHTML=`<span class="meta-pill">${escapeHtml(book.title)}</span><span class="meta-pill">${count} words</span>${book.includeInTest===false?'<span class="meta-pill">Test 제외</span>':""}${book.url?escapeHtml(book.url):"내장 단어장"}`;
+    div.innerHTML=`<span class="meta-pill">${escapeHtml(book.title)}</span><span class="meta-pill">${count} words</span>${book.includeInTest===false?'<span class="meta-pill">Test 제외</span>':`<span class="meta-pill">${quizCount} test items</span>`}${book.url?escapeHtml(book.url):"내장 단어장"}`;
     box.appendChild(div);
   });
 }
@@ -1318,10 +1498,12 @@ function renderSelectors(){
   const bookBox=$("bookCheckboxes");
   bookBox.innerHTML="";
   getTestBooks().forEach(book=>{
-    const count=wordList.filter(word=>word.bookId===book.id).length;
+    const bookWords=wordList.filter(word=>word.bookId===book.id);
+    const count=bookWords.length;
+    const quizCount=expandWordsForQuiz(bookWords).length;
     const label=document.createElement("label");
     label.className="check-item";
-    label.innerHTML=`<input type="checkbox" value="${book.id}" ${selectedBookIds.has(book.id)?"checked":""}> <span>${escapeHtml(book.title)} (${count})</span>`;
+    label.innerHTML=`<input type="checkbox" value="${book.id}" ${selectedBookIds.has(book.id)?"checked":""}> <span>${escapeHtml(book.title)} (${count}단어/${quizCount}문제)</span>`;
     label.querySelector("input").onchange=e=>{
       if(e.target.checked)selectedBookIds.add(book.id);
       else selectedBookIds.delete(book.id);
@@ -1383,11 +1565,12 @@ function updateScope(){
     return;
   }
   const selected=result.words;
+  const quizItems=expandWordsForQuiz(selected);
   $("selectedScope").textContent=selected.length
-    ? `선택된 범위: ${selected.length}개 단어`
+    ? `선택된 범위: ${selected.length}개 단어 · 동의어 포함 ${quizItems.length}개 문제`
     : "시작 Day를 입력하면 범위가 계산됩니다.";
-  $("questionCount").max=Math.max(1,selected.length);
-  if(Number($("questionCount").value)>selected.length)$("questionCount").value=selected.length||1;
+  $("questionCount").max=Math.max(1,quizItems.length);
+  if(Number($("questionCount").value)>quizItems.length)$("questionCount").value=quizItems.length||1;
 }
 function renderAll(){
   renderVocabulary();
@@ -1396,12 +1579,27 @@ function renderAll(){
   renderTestHistory();
 }
 function getQuestionText(w){return direction==="engToKor"?w.english:w.korean}
-function getCorrectAnswer(w){return direction==="engToKor"?w.korean:w.english}
+function getCorrectAnswers(w){
+  return direction==="engToKor"
+    ? [w.korean]
+    : uniqueTextItems([w.english,...(Array.isArray(w.acceptedEnglish)?w.acceptedEnglish:[])]);
+}
+function getCorrectAnswer(w){return getCorrectAnswers(w)[0]||""}
+function formatCorrectAnswer(w){
+  const answers=getCorrectAnswers(w);
+  if(answers.length<=1)return answers[0]||"";
+  return `${answers[0]} (가능: ${answers.slice(1).join(" / ")})`;
+}
+function isCorrectAnswer(w,answer){
+  const normalized=normalizeText(answer);
+  return getCorrectAnswers(w).some(correct=>normalizeText(correct)===normalized);
+}
 function buildChoiceSet(current,pool){
   const correct=getCorrectAnswer(current);
+  const correctKeys=new Set(getCorrectAnswers(current).map(answer=>normalizeText(answer)));
   const wrong=shuffleArray(
     pool
-      .filter(w=>normalizeText(w.english)!==normalizeText(current.english))
+      .filter(w=>!getCorrectAnswers(w).some(answer=>correctKeys.has(normalizeText(answer))))
       .map(getCorrectAnswer)
       .filter(a=>normalizeText(a)!==normalizeText(correct))
   );
@@ -1427,7 +1625,7 @@ function startQuiz(custom=null){
     status.textContent=selection.error;
     return;
   }
-  const pool=selection.words;
+  const pool=custom?selection.words:expandWordsForQuiz(selection.words);
   if(!pool.length){
     status.className="status error";
     status.textContent="단어장과 Day를 하나 이상 선택하세요.";
@@ -1501,13 +1699,13 @@ function submitQuiz(){
   saveTyping();
   const data=questions.map((w,i)=>{
     const userAnswer=answers[i]||"";
-    const correctAnswer=getCorrectAnswer(w);
+    const correctAnswer=formatCorrectAnswer(w);
     return{
       word:w,
       question:getQuestionText(w),
       userAnswer,
       correctAnswer,
-      isCorrect:quizType==="typing"?null:normalizeText(userAnswer)===normalizeText(correctAnswer)
+      isCorrect:quizType==="typing"?null:isCorrectAnswer(w,userAnswer)
     };
   });
   latestResultData=data;
@@ -1523,8 +1721,9 @@ function renderResult(){
     const box=document.createElement("div");
     const state=x.isCorrect===null?"pending":x.isCorrect?"correct":"wrong";
     const resultText=x.isCorrect===null?"채점 대기":x.isCorrect?"정답":"오답";
+    const sourceText=x.word.isSynonym?` · ${escapeHtml(x.word.parentEnglish)}의 동의어`:"";
     box.className=`answer-item ${state}`;
-    box.innerHTML=`<p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p><p>${escapeHtml(x.word.bookTitle)} · Day ${x.word.day}</p><p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p><p>정답: ${escapeHtml(x.correctAnswer)}</p><p>결과: ${resultText}</p>`;
+    box.innerHTML=`<p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p><p>${escapeHtml(x.word.bookTitle)} · Day ${x.word.day}${sourceText}</p><p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p><p>정답: ${escapeHtml(x.correctAnswer)}</p><p>결과: ${resultText}</p>`;
     box.querySelector("strong").appendChild(renderStarButton(x.word,"inline-star"));
     if(latestManualGrading){
       const actions=document.createElement("div");
