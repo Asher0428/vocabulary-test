@@ -1578,6 +1578,9 @@ function renderAll(){
   renderSelectors();
   renderTestHistory();
 }
+function getMeaningFamilyKey(w){
+  return normalizeText(w.sourceEnglish||w.parentEnglish||w.english);
+}
 function getQuestionText(w){return direction==="engToKor"?w.english:w.korean}
 function getCorrectAnswers(w){
   return direction==="engToKor"
@@ -1597,8 +1600,10 @@ function isCorrectAnswer(w,answer){
 function buildChoiceSet(current,pool){
   const correct=getCorrectAnswer(current);
   const correctKeys=new Set(getCorrectAnswers(current).map(answer=>normalizeText(answer)));
+  const currentFamilyKey=getMeaningFamilyKey(current);
   const wrong=shuffleArray(
     pool
+      .filter(w=>getMeaningFamilyKey(w)!==currentFamilyKey)
       .filter(w=>!getCorrectAnswers(w).some(answer=>correctKeys.has(normalizeText(answer))))
       .map(getCorrectAnswer)
       .filter(a=>normalizeText(a)!==normalizeText(correct))
