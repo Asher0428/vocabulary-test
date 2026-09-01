@@ -119,7 +119,18 @@
     .answer-item.correct{border-left:6px solid var(--success)}
     .answer-item.wrong{border-left:6px solid #d64545}
     .answer-item.pending{border-left:6px solid #c8ced6}
+    .answer-item summary{cursor:pointer;list-style:none}
+    .answer-item summary::-webkit-details-marker{display:none}
     .answer-item p{margin:5px 0;line-height:1.5}
+    .result-detail{margin-top:13px;padding-top:13px;border-top:1px solid var(--line);display:grid;gap:12px}
+    .detail-panel{border:1px solid var(--line);border-radius:8px;background:#fafbfc;padding:12px}
+    .detail-title{font-weight:900;margin-bottom:8px}
+    .choice-detail-list{display:grid;gap:8px}
+    .choice-detail{border:1px solid var(--line);border-radius:8px;background:#fff;padding:10px}
+    .choice-detail.correct{border-left:5px solid var(--success)}
+    .choice-detail.selected:not(.correct){border-left:5px solid #d64545}
+    .choice-detail-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:900}
+    .choice-detail-body{font-size:13px;line-height:1.5;margin-top:7px;color:var(--text)}
     .grading-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
     .grade-btn{border:1px solid var(--line);border-radius:8px;background:#fff;padding:9px 14px;font-weight:900;min-width:58px}
     .grade-btn.correct.selected{background:var(--success);border-color:var(--success);color:#fff}
@@ -773,7 +784,19 @@ function recordTestHistoryIfReady(){
       question:x.question,
       userAnswer:x.userAnswer||"미응답",
       correctAnswer:x.correctAnswer,
-      isCorrect:x.isCorrect===true
+      isCorrect:x.isCorrect===true,
+      choices:getChoiceDetails(x,i).map(item=>({
+        choice:item.choice,
+        selected:item.selected,
+        correct:item.correct,
+        answer:item.choiceWord?getChoiceAnswerText(item.choiceWord):"",
+        english:item.choiceWord?getPrimaryEnglishText(item.choiceWord):"",
+        korean:item.choiceWord?getFullMeaningText(item.choiceWord):"",
+        bookTitle:item.choiceWord?.bookTitle||"",
+        day:item.choiceWord?.day||"",
+        isSynonym:item.choiceWord?.isSynonym===true,
+        parentEnglish:item.choiceWord?.parentEnglish||""
+      }))
     }))
   });
   saveTestHistory(history);
@@ -1597,6 +1620,34 @@ function isCorrectAnswer(w,answer){
   const normalized=normalizeText(answer);
   return getCorrectAnswers(w).some(correct=>normalizeText(correct)===normalized);
 }
+function getFullMeaningText(word){
+  return word.sourceKorean||word.korean||"";
+}
+function getPrimaryEnglishText(word){
+  return word.sourceEnglish||word.parentEnglish||word.english||"";
+}
+function getChoiceAnswerText(word){
+  if(!word)return "";
+  return direction==="engToKor"?getPrimaryEnglishText(word):getFullMeaningText(word);
+}
+function findChoiceWord(choice,currentWord){
+  const normalized=normalizeText(choice);
+  const correctMatch=getCorrectAnswers(currentWord).some(answer=>normalizeText(answer)===normalized);
+  if(correctMatch)return currentWord;
+  return activePool.find(word=>getCorrectAnswers(word).some(answer=>normalizeText(answer)===normalized))
+    || wordList.find(word=>normalizeText(word.english)===normalized||normalizeText(word.korean)===normalized)
+    || expandWordsForQuiz(wordList).find(word=>getCorrectAnswers(word).some(answer=>normalizeText(answer)===normalized));
+}
+function getChoiceDetails(result,index){
+  if(quizType!=="multiple"&&!Array.isArray(result.choiceTexts))return[];
+  const choices=Array.isArray(result.choiceTexts)?result.choiceTexts:(choiceSets[index]||[]);
+  return choices.map(choice=>{
+    const choiceWord=findChoiceWord(choice,result.word);
+    const selected=normalizeText(result.userAnswer)===normalizeText(choice);
+    const correct=getCorrectAnswers(result.word).some(answer=>normalizeText(answer)===normalizeText(choice));
+    return {choice,choiceWord,selected,correct};
+  });
+}
 function buildChoiceSet(current,pool){
   const correct=getCorrectAnswer(current);
   const correctKeys=new Set(getCorrectAnswers(current).map(answer=>normalizeText(answer)));
@@ -1710,6 +1761,7 @@ function submitQuiz(){
       question:getQuestionText(w),
       userAnswer,
       correctAnswer,
+      choiceTexts:quizType==="multiple"?[...(choiceSets[i]||[])]:[],
       isCorrect:quizType==="typing"?null:isCorrectAnswer(w,userAnswer)
     };
   });
@@ -1719,17 +1771,83 @@ function submitQuiz(){
   renderResult();
   showPage($("resultPage"));
 }
+function renderWordDetailPanel(word,title="정답 전체 의미"){
+  const panel=document.createElement("div");
+  panel.className="detail-panel";
+  const synonymLine=hasSynonyms(word)?`<div class="choice-detail-body">Synonyms: ${escapeHtml(formatSynonyms(word))}</div>`:"";
+  panel.innerHTML=`
+    <div class="detail-title">${escapeHtml(title)}</div>
+    <div class="choice-detail-head">
+      <span>${escapeHtml(getPrimaryEnglishText(word))}</span>
+      <span class="meta-pill">${escapeHtml(word.bookTitle||"단어장")}</span>
+      <span class="meta-pill">Day ${escapeHtml(word.day||"")}</span>
+    </div>
+    <div class="choice-detail-body">${escapeHtml(getFullMeaningText(word))}</div>
+    ${word.isSynonym?`<div class="choice-detail-body">출제 단어: ${escapeHtml(word.english)} · ${escapeHtml(word.parentEnglish||"")}의 동의어</div>`:""}
+    ${synonymLine}
+  `;
+  panel.querySelector(".choice-detail-head").prepend(renderStarButton(word,"inline-star"));
+  return panel;
+}
+function renderChoiceDetails(result,index){
+  const choices=getChoiceDetails(result,index);
+  if(!choices.length)return null;
+  const panel=document.createElement("div");
+  panel.className="detail-panel";
+  panel.innerHTML=`<div class="detail-title">선지 정보</div>`;
+  const list=document.createElement("div");
+  list.className="choice-detail-list";
+  choices.forEach(item=>{
+    const row=document.createElement("div");
+    row.className=`choice-detail ${item.correct?"correct":""} ${item.selected?"selected":""}`.trim();
+    const badges=[
+      item.correct?'<span class="meta-pill">정답 선지</span>':"",
+      item.selected?'<span class="meta-pill">내가 고른 선지</span>':""
+    ].join("");
+    row.innerHTML=`
+      <div class="choice-detail-head">
+        <span>${escapeHtml(item.choice)}</span>
+        ${badges}
+      </div>
+      <div class="choice-detail-body">이 선지의 답: ${escapeHtml(item.choiceWord?getChoiceAnswerText(item.choiceWord):item.choice)}</div>
+      <div class="choice-detail-body">${escapeHtml(item.choiceWord?getFullMeaningText(item.choiceWord):"해당 선지의 단어 정보를 찾지 못했습니다.")}</div>
+      ${item.choiceWord&&hasSynonyms(item.choiceWord)?`<div class="choice-detail-body">Synonyms: ${escapeHtml(formatSynonyms(item.choiceWord))}</div>`:""}
+    `;
+    if(item.choiceWord)row.querySelector(".choice-detail-head").prepend(renderStarButton(item.choiceWord,"inline-star"));
+    list.appendChild(row);
+  });
+  panel.appendChild(list);
+  return panel;
+}
+function renderResultDetail(result,index){
+  const detail=document.createElement("div");
+  detail.className="result-detail";
+  detail.appendChild(renderWordDetailPanel(result.word));
+  const choicePanel=renderChoiceDetails(result,index);
+  if(choicePanel)detail.appendChild(choicePanel);
+  return detail;
+}
 function renderResult(){
   const sheet=$("answerSheet");
   sheet.innerHTML="";
   latestResultData.forEach((x,i)=>{
-    const box=document.createElement("div");
+    const box=document.createElement("details");
     const state=x.isCorrect===null?"pending":x.isCorrect?"correct":"wrong";
     const resultText=x.isCorrect===null?"채점 대기":x.isCorrect?"정답":"오답";
     const sourceText=x.word.isSynonym?` · ${escapeHtml(x.word.parentEnglish)}의 동의어`:"";
     box.className=`answer-item ${state}`;
-    box.innerHTML=`<p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p><p>${escapeHtml(x.word.bookTitle)} · Day ${x.word.day}${sourceText}</p><p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p><p>정답: ${escapeHtml(x.correctAnswer)}</p><p>결과: ${resultText}</p>`;
+    if(latestManualGrading)box.open=true;
+    box.innerHTML=`
+      <summary>
+        <p><strong>${i+1}. ${escapeHtml(x.question)}</strong></p>
+        <p>${escapeHtml(x.word.bookTitle)} · Day ${x.word.day}${sourceText}</p>
+        <p>내 답: ${escapeHtml(x.userAnswer||"미응답")}</p>
+        <p>정답: ${escapeHtml(x.correctAnswer)}</p>
+        <p>결과: ${resultText}</p>
+      </summary>
+    `;
     box.querySelector("strong").appendChild(renderStarButton(x.word,"inline-star"));
+    box.appendChild(renderResultDetail(x,i));
     if(latestManualGrading){
       const actions=document.createElement("div");
       actions.className="grading-actions";
