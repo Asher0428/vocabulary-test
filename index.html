@@ -1604,22 +1604,84 @@ function renderAll(){
 function getMeaningFamilyKey(w){
   return normalizeText(w.sourceEnglish||w.parentEnglish||w.english);
 }
+// Keep the source meaning groups separate: one headword may have several senses.
+function getMeaningParts(text){
+  return uniqueTextItems(String(text??"").split(/[,;，；|/]/));
+}
+function getEnglishFamily(w){
+  return uniqueTextItems([w.english,w.sourceEnglish,w.parentEnglish,
+    ...(Array.isArray(w.acceptedEnglish)?w.acceptedEnglish:[])]);
+}
+function meaningsOverlap(a,b){
+  const keys=new Set(getMeaningParts(a).map(normalizeText));
+  return getMeaningParts(b).some(part=>keys.has(normalizeText(part)));
+}
+function areChoiceFamilyWords(a,b){
+  const aKeys=new Set(getEnglishFamily(a).map(normalizeText));
+  const bKeys=new Set(getEnglishFamily(b).map(normalizeText));
+  if(![...bKeys].some(key=>aKeys.has(key)))return false;
+  if(meaningsOverlap(a.korean,b.korean))return true;
+  // Different glosses are allowed for an explicit synonym link, but a shared
+  // spelling alone must not merge unrelated senses (e.g. bank).
+  const aRoot=getMeaningFamilyKey(a),bRoot=getMeaningFamilyKey(b);
+  return aRoot!==bRoot&&(aKeys.has(bRoot)||bKeys.has(aRoot));
+}
+let choiceAnswerContext=null;
+function getChoiceAnswerContext(pool=activePool){
+  if(!choiceAnswerContext||choiceAnswerContext.source!==wordList||choiceAnswerContext.pool!==pool){
+    choiceAnswerContext={source:wordList,pool,
+      words:[...pool,...expandWordsForQuiz(wordList)],
+      engToKor:new WeakMap(),korToEng:new WeakMap()};
+  }
+  return choiceAnswerContext;
+}
+function getChoiceFamilyWords(w,context){
+  const family=[w],remaining=new Set(context.words);
+  for(let i=0;i<family.length;i++){
+    for(const candidate of remaining){
+      if(areChoiceFamilyWords(family[i],candidate)){
+        family.push(candidate);
+        remaining.delete(candidate);
+      }
+    }
+  }
+  return family;
+}
+
 function getQuestionText(w){return direction==="engToKor"?w.english:w.korean}
-function getCorrectAnswers(w){
-  return direction==="engToKor"
+function getCorrectAnswers(w,pool=activePool){
+  const primary=direction==="engToKor"
     ? [w.korean]
     : uniqueTextItems([w.english,...(Array.isArray(w.acceptedEnglish)?w.acceptedEnglish:[])]);
+  if(quizType!=="multiple")return primary;
+  const context=getChoiceAnswerContext(pool);
+  const cache=context[direction];
+  if(cache.has(w))return cache.get(w);
+  const family=getChoiceFamilyWords(w,context);
+  const meanings=uniqueTextItems(family.flatMap(word=>getMeaningParts(word.korean)));
+  const meaningKeys=new Set(meanings.map(normalizeText));
+  const matchingWords=context.words.filter(word=>
+    getMeaningParts(word.korean).some(part=>meaningKeys.has(normalizeText(part))));
+  const answers=direction==="engToKor"
+    ? uniqueTextItems([...primary,...family.map(word=>word.korean),...meanings,
+        ...matchingWords.map(word=>word.korean)])
+    : uniqueTextItems([...primary,...family.flatMap(getEnglishFamily),
+        ...matchingWords.flatMap(getEnglishFamily)]);
+  cache.set(w,answers);
+  return answers;
 }
+
 function getCorrectAnswer(w){return getCorrectAnswers(w)[0]||""}
 function formatCorrectAnswer(w){
   const answers=getCorrectAnswers(w);
   if(answers.length<=1)return answers[0]||"";
   return `${answers[0]} (가능: ${answers.slice(1).join(" / ")})`;
 }
-function isCorrectAnswer(w,answer){
+function isCorrectAnswer(w,answer,pool=activePool){
   const normalized=normalizeText(answer);
-  return getCorrectAnswers(w).some(correct=>normalizeText(correct)===normalized);
+  return normalized!==""&&getCorrectAnswers(w,pool).some(correct=>normalizeText(correct)===normalized);
 }
+
 function getFullMeaningText(word){
   return word.sourceKorean||word.korean||"";
 }
@@ -1632,43 +1694,45 @@ function getChoiceAnswerText(word){
 }
 function findChoiceWord(choice,currentWord){
   const normalized=normalizeText(choice);
-  const correctMatch=getCorrectAnswers(currentWord).some(answer=>normalizeText(answer)===normalized);
-  if(correctMatch)return currentWord;
-  return activePool.find(word=>getCorrectAnswers(word).some(answer=>normalizeText(answer)===normalized))
-    || wordList.find(word=>normalizeText(word.english)===normalized||normalizeText(word.korean)===normalized)
-    || expandWordsForQuiz(wordList).find(word=>getCorrectAnswers(word).some(answer=>normalizeText(answer)===normalized));
+  if(!normalized)return undefined;
+  const context=getChoiceAnswerContext();
+  const candidates=[currentWord,...context.words,...wordList];
+  // Resolve the displayed text before considering aliases, so another family's
+  // accepted answer does not borrow the question word's explanation.
+  const exact=candidates.find(word=>normalizeText(direction==="engToKor"?word.korean:word.english)===normalized);
+  if(exact)return exact;
+  return candidates.find(word=>direction==="engToKor"
+    ? getMeaningParts(word.korean).some(part=>normalizeText(part)===normalized)
+    : getEnglishFamily(word).some(english=>normalizeText(english)===normalized));
 }
+
 function getChoiceDetails(result,index){
   if(quizType!=="multiple"&&!Array.isArray(result.choiceTexts))return[];
   const choices=Array.isArray(result.choiceTexts)?result.choiceTexts:(choiceSets[index]||[]);
   return choices.map(choice=>{
     const choiceWord=findChoiceWord(choice,result.word);
     const selected=normalizeText(result.userAnswer)===normalizeText(choice);
-    const correct=getCorrectAnswers(result.word).some(answer=>normalizeText(answer)===normalizeText(choice));
+    const correct=isCorrectAnswer(result.word,choice);
     return {choice,choiceWord,selected,correct};
   });
 }
 function buildChoiceSet(current,pool){
-  const correct=getCorrectAnswer(current);
-  const correctKeys=new Set(getCorrectAnswers(current).map(answer=>normalizeText(answer)));
-  const currentFamilyKey=getMeaningFamilyKey(current);
-  const wrong=shuffleArray(
-    pool
-      .filter(w=>getMeaningFamilyKey(w)!==currentFamilyKey)
-      .filter(w=>!getCorrectAnswers(w).some(answer=>correctKeys.has(normalizeText(answer))))
-      .map(getCorrectAnswer)
-      .filter(a=>normalizeText(a)!==normalizeText(correct))
-  );
-  const unique=[],seen=new Set();
-  wrong.forEach(a=>{
-    const key=normalizeText(a);
-    if(!seen.has(key)){
-      seen.add(key);
-      unique.push(a);
-    }
-  });
-  return shuffleArray([correct,...unique.slice(0,3)]);
+  const correct=direction==="engToKor"?current.korean:current.english;
+  const seen=new Set([normalizeText(correct)]);
+  const wrong=[];
+  for(const word of shuffleArray(pool)){
+    if(getMeaningFamilyKey(word)===getMeaningFamilyKey(current))continue;
+    if(direction==="engToKor"&&normalizeText(word.english)===normalizeText(current.english))continue;
+    const choice=direction==="engToKor"?word.korean:word.english;
+    const key=normalizeText(choice);
+    if(!key||seen.has(key)||isCorrectAnswer(current,choice,pool))continue;
+    seen.add(key);
+    wrong.push(choice);
+    if(wrong.length===3)break;
+  }
+  return shuffleArray([correct,...wrong]);
 }
+
 function startQuiz(custom=null){
   const status=$("testStatus");
   status.className="status";
@@ -1699,8 +1763,15 @@ function startQuiz(custom=null){
     status.textContent="객관식 시험에는 최소 2개 이상의 단어가 필요합니다.";
     return;
   }
+  const nextQuestions=custom?shuffleArray(pool):shuffleArray(pool).slice(0,count);
+  const nextChoiceSets=nextQuestions.map(w=>quizType==="multiple"?buildChoiceSet(w,choicePool):[]);
+  if(quizType==="multiple"&&nextChoiceSets.some(choices=>choices.length<2)){
+    status.className="status error";
+    status.textContent="동의어·같은 의미를 제외한 오답 선지가 부족합니다. 단어장 또는 Day 범위를 넓혀 주세요.";
+    return;
+  }
   activePool=choicePool;
-  questions=custom?shuffleArray(pool):shuffleArray(pool).slice(0,count);
+  questions=nextQuestions;
   currentQuizMeta={
     quizType,
     direction,
@@ -1710,7 +1781,7 @@ function startQuiz(custom=null){
   latestResultRecorded=false;
   currentIndex=0;
   answers=new Array(questions.length).fill("");
-  choiceSets=questions.map(w=>quizType==="multiple"?buildChoiceSet(w,choicePool):[]);
+  choiceSets=nextChoiceSets;
   showPage($("quizPage"));
   renderQuestion();
 }
