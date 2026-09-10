@@ -1705,20 +1705,33 @@ function formatCorrectAnswer(w,displayedChoices=[]){
   if(!answers.length)return "";
 
   const primary=answers[0];
-  const primaryParts=new Set(getMeaningParts(primary).map(normalizeText));
+  const primaryParts=new Set(
+    getMeaningParts(primary).map(normalizeText).filter(Boolean)
+  );
   const displayedKeys=getDisplayedChoiceMeaningKeys(displayedChoices);
 
-  const alternatives=uniqueTextItems(answers.slice(1)).filter(answer=>{
-    const answerKey=normalizeText(answer);
-    const parts=getMeaningParts(answer).map(normalizeText).filter(Boolean);
-    if(!answerKey||!parts.length)return false;
+  // '가능:' 표시는 정답 판정용 후보와 분리해서 처리한다.
+  // 복합 뜻을 의미 단위로 분해한 뒤,
+  // 1) 대표 정답에 이미 들어 있는 뜻
+  // 2) 실제 객관식 선지에 이미 제시된 뜻
+  // 만 제거한다.
+  //
+  // 예:
+  // menace = "위협, 위협하다"
+  // 다른 직접 등록 뜻 = "위협하다, 협박하다"
+  // -> 가능: 협박하다
+  //
+  // exhaustive가 comprehensive의 synonym으로 출제되고,
+  // exhaustive가 별도 headword로 등록되어 있으면
+  // -> 그 headword에 직접 등록된 추가 뜻은 가능 정답으로 유지
+  const alternatives=uniqueTextItems(
+    answers.slice(1).flatMap(answer=>getMeaningParts(answer))
+  ).filter(answer=>{
+    const key=normalizeText(answer);
+    if(!key)return false;
 
-    // 대표 정답에 이미 포함된 의미는 중복 표시하지 않는다.
-    if(parts.every(part=>primaryParts.has(part)))return false;
-
-    // 객관식 선지에 이미 제시된 답은 '가능:'에 다시 표시하지 않는다.
-    if(displayedKeys.has(answerKey))return false;
-    if(parts.every(part=>displayedKeys.has(part)))return false;
+    if(primaryParts.has(key))return false;
+    if(displayedKeys.has(key))return false;
 
     return true;
   });
