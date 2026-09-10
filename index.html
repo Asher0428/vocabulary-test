@@ -1677,8 +1677,23 @@ function getCorrectAnswers(w,pool=activePool){
 function getCorrectAnswer(w){return getCorrectAnswers(w)[0]||""}
 function formatCorrectAnswer(w){
   const answers=getCorrectAnswers(w);
-  if(answers.length<=1)return answers[0]||"";
-  return `${answers[0]} (가능: ${answers.slice(1).join(" / ")})`;
+  if(!answers.length)return "";
+
+  const primary=answers[0];
+  const primaryParts=new Set(getMeaningParts(primary).map(normalizeText));
+  const alternatives=uniqueTextItems(answers.slice(1)).filter(answer=>{
+    const parts=getMeaningParts(answer).map(normalizeText).filter(Boolean);
+    if(!parts.length)return false;
+
+    // 대표 정답과 완전히 같은 답, 또는 대표 정답에 이미 모두 포함된
+    // 개별 의미는 '가능:'에서 중복 표시하지 않는다.
+    // 예: '철저한, 완전한, 종합적인'이 대표 정답이면
+    // '철저한', '완전한', '종합적인'은 별도로 표시하지 않음.
+    return !parts.every(part=>primaryParts.has(part));
+  });
+
+  if(!alternatives.length)return primary;
+  return `${primary} (가능: ${alternatives.join(" / ")})`;
 }
 function isCorrectAnswer(w,answer,pool=activePool){
   const normalized=normalizeText(answer);
