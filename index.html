@@ -1662,9 +1662,12 @@ function getCorrectAnswers(w,pool=activePool){
   const meaningKeys=new Set(meanings.map(normalizeText));
   const matchingWords=context.words.filter(word=>
     getMeaningParts(word.korean).some(part=>meaningKeys.has(normalizeText(part))));
+
+  // 영어 → 한국어에서는 같은 뜻을 일부 공유하는 다른 단어의 전체 뜻을
+  // 정답 후보에 넣지 않는다. 실제 family에서 연결된 의미 조각만 허용한다.
+  // 예: exhaustive ↔ utter가 '완전한'을 공유하더라도 '말하다, 완전한'은 제외.
   const answers=direction==="engToKor"
-    ? uniqueTextItems([...primary,...family.map(word=>word.korean),...meanings,
-        ...matchingWords.map(word=>word.korean)])
+    ? uniqueTextItems([...primary,...meanings])
     : uniqueTextItems([...primary,...family.flatMap(getEnglishFamily),
         ...matchingWords.flatMap(getEnglishFamily)]);
   cache.set(w,answers);
