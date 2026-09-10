@@ -1650,62 +1650,62 @@ function getChoiceFamilyWords(w,context){
 
 function getQuestionText(w){return direction==="engToKor"?w.english:w.korean}
 function getCorrectAnswers(w,pool=activePool){
-  const primary=direction==="engToKor"
-    ? [w.korean]
-    : uniqueTextItems([w.english,...(Array.isArray(w.acceptedEnglish)?w.acceptedEnglish:[])]);
-  if(quizType!=="multiple")return primary;
-  const context=getChoiceAnswerContext(pool);
-  const cache=context[direction];
-  if(cache.has(w))return cache.get(w);
-
-  // 현재 출제 항목에 실제로 지정된 의미만 기준으로 삼는다.
-  // 동의어로 연결된 다른 headword의 별도 의미가 역으로 유입되지 않게 한다.
-  // 예: surmise -> synonym suspect 라고 해도 suspect의 '의심하다'는
-  // surmise의 '추측하다'와 의미가 겹치지 않으므로 정답 후보에 들어오지 않는다.
-  const currentMeanings=getMeaningParts(w.korean);
-  const currentMeaningKeys=new Set(currentMeanings.map(normalizeText));
-
+  // 정답은 현재 CSV 행의 현재 의미 그룹에 명시된 범위에서만 만든다.
+  // 다른 headword의 뜻이나 synonym family를 전역 검색해 역으로 끌어오지 않는다.
   if(direction==="engToKor"){
-    // 원래 한국어 정답과 그 안의 의미 조각만 허용한다.
-    // 다른 headword가 같은 영어 표기를 공유해도 그 단어의 별도 뜻은 가져오지 않는다.
-    const answers=uniqueTextItems([...primary,...currentMeanings]);
-    cache.set(w,answers);
-    return answers;
+    const primary=String(w.korean??"").trim();
+    if(!primary)return [];
+    // 복합 한국어 뜻은 전체 표현과 각 개별 의미를 모두 정답으로 허용한다.
+    // 예: "철저한, 완전한, 종합적인" -> 전체 표현 + 각 의미
+    return uniqueTextItems([primary,...getMeaningParts(primary)]);
   }
 
-  // 한국어 -> 영어에서는 현재 의미와 실제로 겹치는 항목만 찾는다.
-  // 현재 의미 그룹에 명시적으로 연결된 acceptedEnglish는 항상 허용한다.
-  const matchingWords=context.words.filter(word=>
-    getMeaningParts(word.korean).some(part=>currentMeaningKeys.has(normalizeText(part))));
-  const answers=uniqueTextItems([
-    ...primary,
-    ...matchingWords.flatMap(getEnglishFamily)
+  // 한국어 -> 영어: 현재 의미 그룹에 직접 연결된 headword/synonym만 허용한다.
+  // expandWordForQuiz()가 같은 의미 그룹의 synonym만 acceptedEnglish에 넣어 둔다.
+  return uniqueTextItems([
+    w.english,
+    ...(Array.isArray(w.acceptedEnglish)?w.acceptedEnglish:[])
   ]);
-  cache.set(w,answers);
-  return answers;
 }
 
 function getCorrectAnswer(w){return getCorrectAnswers(w)[0]||""}
-function formatCorrectAnswer(w){
+function getDisplayedChoiceMeaningKeys(choices=[]){
+  const keys=new Set();
+  (Array.isArray(choices)?choices:[]).forEach(choice=>{
+    const text=String(choice??"").trim();
+    if(!text)return;
+    keys.add(normalizeText(text));
+    getMeaningParts(text).forEach(part=>keys.add(normalizeText(part)));
+  });
+  return keys;
+}
+function formatCorrectAnswer(w,displayedChoices=[]){
   const answers=getCorrectAnswers(w);
   if(!answers.length)return "";
 
   const primary=answers[0];
   const primaryParts=new Set(getMeaningParts(primary).map(normalizeText));
-  const alternatives=uniqueTextItems(answers.slice(1)).filter(answer=>{
-    const parts=getMeaningParts(answer).map(normalizeText).filter(Boolean);
-    if(!parts.length)return false;
+  const displayedKeys=getDisplayedChoiceMeaningKeys(displayedChoices);
 
-    // 대표 정답과 완전히 같은 답, 또는 대표 정답에 이미 모두 포함된
-    // 개별 의미는 '가능:'에서 중복 표시하지 않는다.
-    // 예: '철저한, 완전한, 종합적인'이 대표 정답이면
-    // '철저한', '완전한', '종합적인'은 별도로 표시하지 않음.
-    return !parts.every(part=>primaryParts.has(part));
+  const alternatives=uniqueTextItems(answers.slice(1)).filter(answer=>{
+    const answerKey=normalizeText(answer);
+    const parts=getMeaningParts(answer).map(normalizeText).filter(Boolean);
+    if(!answerKey||!parts.length)return false;
+
+    // 대표 정답에 이미 포함된 개별 의미는 다시 표시하지 않는다.
+    if(parts.every(part=>primaryParts.has(part)))return false;
+
+    // 객관식 선지에 이미 보인 답도 '가능:'에 다시 표시하지 않는다.
+    if(displayedKeys.has(answerKey))return false;
+    if(parts.every(part=>displayedKeys.has(part)))return false;
+
+    return true;
   });
 
   if(!alternatives.length)return primary;
   return `${primary} (가능: ${alternatives.join(" / ")})`;
 }
+
 function isCorrectAnswer(w,answer,pool=activePool){
   const normalized=normalizeText(answer);
   return normalized!==""&&getCorrectAnswers(w,pool).some(correct=>normalizeText(correct)===normalized);
@@ -1855,7 +1855,7 @@ function submitQuiz(){
   saveTyping();
   const data=questions.map((w,i)=>{
     const userAnswer=answers[i]||"";
-    const correctAnswer=formatCorrectAnswer(w);
+    const correctAnswer=formatCorrectAnswer(w,quizType==="multiple"?(choiceSets[i]||[]):[]);
     return{
       word:w,
       question:getQuestionText(w),
