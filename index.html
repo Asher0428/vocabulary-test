@@ -1657,19 +1657,30 @@ function getCorrectAnswers(w,pool=activePool){
   const context=getChoiceAnswerContext(pool);
   const cache=context[direction];
   if(cache.has(w))return cache.get(w);
-  const family=getChoiceFamilyWords(w,context);
-  const meanings=uniqueTextItems(family.flatMap(word=>getMeaningParts(word.korean)));
-  const meaningKeys=new Set(meanings.map(normalizeText));
-  const matchingWords=context.words.filter(word=>
-    getMeaningParts(word.korean).some(part=>meaningKeys.has(normalizeText(part))));
 
-  // 영어 → 한국어에서는 같은 뜻을 일부 공유하는 다른 단어의 전체 뜻을
-  // 정답 후보에 넣지 않는다. 실제 family에서 연결된 의미 조각만 허용한다.
-  // 예: exhaustive ↔ utter가 '완전한'을 공유하더라도 '말하다, 완전한'은 제외.
-  const answers=direction==="engToKor"
-    ? uniqueTextItems([...primary,...meanings])
-    : uniqueTextItems([...primary,...family.flatMap(getEnglishFamily),
-        ...matchingWords.flatMap(getEnglishFamily)]);
+  // 현재 출제 항목에 실제로 지정된 의미만 기준으로 삼는다.
+  // 동의어로 연결된 다른 headword의 별도 의미가 역으로 유입되지 않게 한다.
+  // 예: surmise -> synonym suspect 라고 해도 suspect의 '의심하다'는
+  // surmise의 '추측하다'와 의미가 겹치지 않으므로 정답 후보에 들어오지 않는다.
+  const currentMeanings=getMeaningParts(w.korean);
+  const currentMeaningKeys=new Set(currentMeanings.map(normalizeText));
+
+  if(direction==="engToKor"){
+    // 원래 한국어 정답과 그 안의 의미 조각만 허용한다.
+    // 다른 headword가 같은 영어 표기를 공유해도 그 단어의 별도 뜻은 가져오지 않는다.
+    const answers=uniqueTextItems([...primary,...currentMeanings]);
+    cache.set(w,answers);
+    return answers;
+  }
+
+  // 한국어 -> 영어에서는 현재 의미와 실제로 겹치는 항목만 찾는다.
+  // 현재 의미 그룹에 명시적으로 연결된 acceptedEnglish는 항상 허용한다.
+  const matchingWords=context.words.filter(word=>
+    getMeaningParts(word.korean).some(part=>currentMeaningKeys.has(normalizeText(part))));
+  const answers=uniqueTextItems([
+    ...primary,
+    ...matchingWords.flatMap(getEnglishFamily)
+  ]);
   cache.set(w,answers);
   return answers;
 }
