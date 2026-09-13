@@ -3,38 +3,60 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#163c66" />
+  <meta name="description" content="사용자별 취약 단어와 복습 일정을 관리하는 생존영어 단어 학습 앱" />
   <title>생존영어</title>
   <style>
     *{box-sizing:border-box}
-    :root{--bg:#f3f5f7;--card:#fff;--text:#17191c;--muted:#6b7280;--line:#e2e6ea;--primary:#1f2328;--soft:#eef0f2;--danger:#b42318;--success:#16803c}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,"Noto Sans KR",sans-serif}
+    :root{--bg:#eef3f8;--card:#fff;--text:#142033;--muted:#64748b;--line:#dce4ed;--primary:#163c66;--primary-2:#246a9b;--soft:#edf3f8;--danger:#b42318;--success:#16803c;--warning:#ad6800;--shadow:0 18px 50px rgba(30,55,80,.09)}
+    body{margin:0;background:linear-gradient(145deg,#f7f9fc 0%,var(--bg) 56%,#e7eef6 100%);color:var(--text);font-family:Inter,Arial,"Noto Sans KR",sans-serif;min-height:100vh}
     button,input,select{font:inherit}
     button{cursor:pointer}
     button:disabled{cursor:not-allowed;opacity:.55}
-    .app{width:min(94%,860px);margin:24px auto 36px}
+    .app{width:min(94%,920px);margin:24px auto 42px}
     .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;min-height:38px}
     .top-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
-    .home-btn,.admin-btn,.user-pill{border:1px solid var(--line);background:#fff;border-radius:8px;font-weight:700}
+    .home-btn,.admin-btn,.user-pill{border:1px solid var(--line);background:rgba(255,255,255,.92);border-radius:10px;font-weight:700}
     .home-btn{padding:9px 13px}
     .admin-btn{padding:7px 10px;font-size:12px;line-height:1}
     .user-pill{padding:7px 10px;font-size:12px;color:var(--muted)}
-    .card{background:var(--card);border-radius:8px;padding:26px;box-shadow:0 10px 28px rgba(0,0,0,.07)}
+    .card{background:var(--card);border:1px solid rgba(220,228,237,.85);border-radius:18px;padding:30px;box-shadow:var(--shadow)}
     .hidden{display:none!important}
     h1,h2{margin:0 0 18px}
-    h1{text-align:center;font-size:34px;font-weight:900}
+    h1{text-align:center;font-size:34px;font-weight:900;letter-spacing:-.04em}
     h2{font-size:24px}
-    .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px}
-    .menu-btn{min-height:146px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:22px;text-align:left;transition:.15s}
-    .menu-btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.06)}
+    .menu-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+    .menu-btn{min-height:118px;border:1px solid var(--line);border-radius:14px;background:#fff;padding:20px;text-align:left;transition:.18s ease}
+    .menu-btn:hover{transform:translateY(-2px);border-color:#b8c8d8;box-shadow:0 10px 24px rgba(30,55,80,.08)}
     .menu-btn:focus-visible,.home-btn:focus-visible,.admin-btn:focus-visible,.back-btn:focus-visible,.primary-btn:focus-visible,.secondary-btn:focus-visible,.danger-btn:focus-visible,.choice-btn:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}
     .menu-title{display:block;font-size:23px;font-weight:800;margin-bottom:9px}
     .menu-desc{color:var(--muted);line-height:1.55;font-size:14px}
     .section-note{color:var(--muted);font-size:14px;line-height:1.6;margin:-6px 0 18px}
-    .primary-btn,.secondary-btn,.danger-btn{border:0;border-radius:8px;padding:12px 16px;font-weight:800}
-    .primary-btn{background:var(--primary);color:#fff}
+    .primary-btn,.secondary-btn,.danger-btn{border:0;border-radius:10px;padding:12px 16px;font-weight:800}
+    .primary-btn{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff}
     .secondary-btn{background:var(--soft)}
     .danger-btn{background:#fff0f0;color:var(--danger)}
     .full{width:100%}
+    .today-panel{margin-top:22px;border-radius:16px;background:linear-gradient(135deg,#153b65,#245e8b);color:#fff;padding:22px;overflow:hidden;position:relative}
+    .today-panel:after{content:"";position:absolute;width:190px;height:190px;border-radius:50%;right:-85px;top:-110px;background:rgba(255,255,255,.09)}
+    .today-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;position:relative;z-index:1}
+    .today-kicker{font-size:13px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#bdd8eb;margin-bottom:6px}
+    .today-title{font-size:25px;font-weight:900;letter-spacing:-.03em}
+    .review-btn{border:0;border-radius:11px;background:#fff;color:#163c66;padding:11px 15px;font-weight:900;white-space:nowrap;position:relative;z-index:1}
+    .review-btn:disabled{background:rgba(255,255,255,.72)}
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:20px;position:relative;z-index:1}
+    .stat-item{padding:12px 13px;border-radius:12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12)}
+    .stat-value{display:block;font-size:22px;font-weight:900}
+    .stat-label{display:block;color:#cfdfec;font-size:12px;font-weight:700;margin-top:3px}
+    .section-label{font-size:13px;font-weight:900;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin:24px 0 10px}
+    .vocab-tabs{display:flex;gap:7px;padding:5px;background:var(--soft);border-radius:12px;margin:14px 0 18px;overflow-x:auto}
+    .vocab-tab{flex:1;border:0;background:transparent;color:var(--muted);border-radius:9px;padding:10px 12px;font-weight:900;white-space:nowrap}
+    .vocab-tab.active{background:#fff;color:var(--primary);box-shadow:0 3px 10px rgba(30,55,80,.08)}
+    .mastery-badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:900;white-space:nowrap}
+    .mastery-badge.weak{background:#fff0ee;color:var(--danger)}
+    .mastery-badge.learning{background:#fff6df;color:var(--warning)}
+    .mastery-badge.mastered{background:#eaf8ef;color:var(--success)}
+    .speak-btn{width:34px;height:34px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--primary);font-size:16px;vertical-align:middle;margin-left:7px}
     .status{margin-top:12px;min-height:21px;font-size:14px;color:var(--muted)}
     .status.success{color:var(--success)}
     .status.error{color:var(--danger)}
@@ -147,6 +169,9 @@
       h1{font-size:30px}
       .menu-grid,.selector-grid,.book-grid{grid-template-columns:1fr}
       .menu-btn{min-height:118px}
+      .today-head{flex-direction:column}
+      .review-btn{width:100%}
+      .stats-grid{grid-template-columns:1fr 1fr}
       .question-word{font-size:32px}
       .navigation{flex-direction:column}
       .toolbar{align-items:flex-start;flex-direction:column}
@@ -191,15 +216,34 @@
 
   <section id="homePage" class="card hidden">
     <h1>생존영어</h1>
+    <div class="today-panel">
+      <div class="today-head">
+        <div>
+          <div class="today-kicker">Today</div>
+          <div id="todayTitle" class="today-title">오늘 복습을 준비하고 있습니다</div>
+        </div>
+        <button id="startReviewBtn" class="review-btn" type="button">복습 시작</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-item"><span id="reviewCountStat" class="stat-value">0</span><span class="stat-label">복습 예정</span></div>
+        <div class="stat-item"><span id="weakCountStat" class="stat-value">0</span><span class="stat-label">취약 단어</span></div>
+        <div class="stat-item"><span id="accuracyStat" class="stat-value">-</span><span class="stat-label">최근 7일 정답률</span></div>
+        <div class="stat-item"><span id="streakStat" class="stat-value">0</span><span class="stat-label">연속 학습일</span></div>
+      </div>
+    </div>
+    <div class="section-label">Study menu</div>
     <div class="menu-grid">
       <button id="openVocabularyBtn" class="menu-btn" type="button" onclick="return fallbackOpenVocabulary(event)">
         <span class="menu-title">Vocabulary</span>
+        <span class="menu-desc">단어장과 뜻을 찾습니다.</span>
       </button>
       <button id="openMyVocabularyBtn" class="menu-btn" type="button" onclick="return fallbackOpenMyVocabulary(event)">
         <span class="menu-title">My Vocabulary</span>
+        <span class="menu-desc">별표, 취약, 숙련 단어를 모아봅니다.</span>
       </button>
       <button id="openTestBtn" class="menu-btn" type="button" onclick="return fallbackOpenTest(event)">
         <span class="menu-title">Test</span>
+        <span class="menu-desc">범위와 유형을 직접 설정합니다.</span>
       </button>
     </div>
   </section>
@@ -258,15 +302,20 @@
   <section id="myVocabularyPage" class="card hidden">
     <h2>My Vocabulary</h2>
     <div id="myVocabSummary" class="section-note"></div>
+    <div class="vocab-tabs" role="tablist" aria-label="단어 분류">
+      <button class="vocab-tab active" type="button" data-vocab-tab="starred" role="tab">Starred <span id="starredTabCount">0</span></button>
+      <button class="vocab-tab" type="button" data-vocab-tab="weak" role="tab">Weak <span id="weakTabCount">0</span></button>
+      <button class="vocab-tab" type="button" data-vocab-tab="mastered" role="tab">Mastered <span id="masteredTabCount">0</span></button>
+    </div>
     <div id="myVocabTableArea" class="word-table-wrap hidden">
       <table>
         <thead>
-          <tr><th>별표</th><th>English</th><th>한국어</th><th>단어장</th><th>Day</th></tr>
+          <tr><th>별표</th><th>English</th><th>한국어</th><th>상태</th><th>단어장</th><th>Day</th></tr>
         </thead>
         <tbody id="myVocabTableBody"></tbody>
       </table>
     </div>
-    <div id="myVocabEmpty" class="empty-state hidden">별표 친 단어가 없습니다.</div>
+    <div id="myVocabEmpty" class="empty-state hidden">저장된 단어가 없습니다.</div>
   </section>
 
   <section id="adminPage" class="card hidden">
@@ -368,8 +417,11 @@ function fallbackLoginEarly(event){
   try{currentUserId=value;}catch(e){}
   try{
     if(typeof loadStarredWords==="function")loadStarredWords();
+    if(typeof loadWordProgress==="function")wordProgress=loadWordProgress();
+    if(typeof loadStudyStats==="function")studyStats=loadStudyStats();
     if(typeof updateUserBadge==="function")updateUserBadge();
     if(typeof hydrateCurrentUserFromCloud==="function")hydrateCurrentUserFromCloud();
+    if(typeof renderHomeDashboard==="function")renderHomeDashboard();
   }catch(e){}
   fallbackEnsureHomeContent();
   fallbackShowPage("homePage");
@@ -390,13 +442,7 @@ function fallbackLoginEarly(event){
 function fallbackEnsureHomeContent(){
   var home=document.getElementById("homePage");
   if(!home)return;
-  home.innerHTML='<h1>생존영어</h1><div class="menu-grid">'+
-    '<button id="openVocabularyBtn" class="menu-btn" type="button" onclick="return fallbackOpenVocabulary(event)"><span class="menu-title">Vocabulary</span></button>'+
-    '<button id="openMyVocabularyBtn" class="menu-btn" type="button" onclick="return fallbackOpenMyVocabulary(event)"><span class="menu-title">My Vocabulary</span></button>'+
-    '<button id="openTestBtn" class="menu-btn" type="button" onclick="return fallbackOpenTest(event)"><span class="menu-title">Test</span></button>'+
-    '</div>';
-  var grid=document.querySelector("#homePage .menu-grid");
-  if(!grid||grid.children.length)return;
+  if(home.querySelector(".menu-grid")&&home.querySelector(".today-panel"))return;
 }
 function fallbackShowPage(pageId){
   var ids=["loginPage","homePage","vocabularyPage","myVocabularyPage","adminPage","testSetupPage","quizPage","resultPage"];
@@ -480,6 +526,9 @@ const DATA_REFRESH_INTERVAL_MS=15000;
 const CURRENT_USER_KEY="survivalEnglishCurrentUserId";
 const STAR_STORAGE_PREFIX="survivalEnglishStarred:";
 const TEST_HISTORY_PREFIX="survivalEnglishTestHistory:";
+const WORD_PROGRESS_PREFIX="survivalEnglishWordProgress:";
+const STUDY_STATS_PREFIX="survivalEnglishStudyStats:";
+const REVIEW_LIMIT=20;
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBeGLuGaxAuEh_Q-uoGTgjW6NoaoFmkPew",
   authDomain:"voca-af3ab.firebaseapp.com",
@@ -538,6 +587,9 @@ let latestResultRecorded=false;
 let currentQuizMeta=null;
 var currentUserId="";
 let starredWordKeys=new Set();
+let wordProgress={};
+let studyStats={days:{}};
+let activeMyVocabularyTab="starred";
 let lastVocabularyRefreshAt=0;
 let vocabularyLoadPromise=null;
 let cloudDb=null;
@@ -602,6 +654,25 @@ function mergeTestHistoryItems(localItems,cloudItems){
     .sort((a,b)=>new Date(b?.date||0)-new Date(a?.date||0))
     .slice(0,5);
 }
+function mergeWordProgress(localProgress,cloudProgress){
+  const merged={...((cloudProgress&&typeof cloudProgress==="object")?cloudProgress:{})};
+  Object.entries((localProgress&&typeof localProgress==="object")?localProgress:{}).forEach(([key,value])=>{
+    const cloudValue=merged[key];
+    const localTime=new Date(value?.lastReviewed||0).getTime()||0;
+    const cloudTime=new Date(cloudValue?.lastReviewed||0).getTime()||0;
+    if(!cloudValue||localTime>=cloudTime)merged[key]=value;
+  });
+  return merged;
+}
+function mergeStudyStats(localValue,cloudValue){
+  const localDays=localValue?.days||{};
+  const cloudDays=cloudValue?.days||{};
+  const days={...cloudDays};
+  Object.entries(localDays).forEach(([date,value])=>{
+    if(!days[date]||Number(value?.total||0)>=Number(days[date]?.total||0))days[date]=value;
+  });
+  return {days:trimStudyDays(days)};
+}
 async function hydrateCurrentUserFromCloud(){
   const ref=getCloudUserRef();
   if(!ref)return;
@@ -616,8 +687,14 @@ async function hydrateCurrentUserFromCloud(){
     const mergedHistory=mergeTestHistoryItems(loadTestHistory(),data.testHistory);
     safeStorageSet(testHistoryStorageKey(),JSON.stringify(mergedHistory));
 
+    wordProgress=mergeWordProgress(loadWordProgress(),data.wordProgress);
+    saveWordProgress({sync:false});
+    studyStats=mergeStudyStats(loadStudyStats(),data.studyStats);
+    saveStudyStats({sync:false});
+
     renderCurrentStarSurfaces();
     renderTestHistory();
+    renderHomeDashboard();
     syncCurrentUserToCloud();
   }catch(e){
     console.warn("Cloud load failed",e);
@@ -630,6 +707,8 @@ async function syncCurrentUserToCloud(){
     await ref.set({
       starredWords:[...starredWordKeys],
       testHistory:loadTestHistory(),
+      wordProgress,
+      studyStats,
       updatedAt:firebase.firestore.FieldValue.serverTimestamp()
     },{merge:true});
   }catch(e){
@@ -649,6 +728,7 @@ function showPage(page){
   $("userIdBadge").classList.toggle("hidden",!currentUserId);
   $("changeUserBtn").classList.toggle("hidden",!currentUserId);
   if(page===$("testSetupPage"))renderTestHistory();
+  if(page===$("homePage"))renderHomeDashboard();
   closeAdminAuth();
   window.scrollTo({top:0,behavior:"smooth"});
 }
@@ -688,6 +768,44 @@ function saveTestHistory(history){
   safeStorageSet(testHistoryStorageKey(),JSON.stringify(history.slice(0,5)));
   scheduleCloudSync();
 }
+function wordProgressStorageKey(){
+  return `${WORD_PROGRESS_PREFIX}${currentUserId}`;
+}
+function loadWordProgress(){
+  if(!currentUserId)return {};
+  try{
+    const saved=JSON.parse(safeStorageGet(wordProgressStorageKey(),"{}"));
+    return saved&&typeof saved==="object"&&!Array.isArray(saved)?saved:{};
+  }catch(e){
+    return {};
+  }
+}
+function saveWordProgress(options={}){
+  if(!currentUserId)return;
+  safeStorageSet(wordProgressStorageKey(),JSON.stringify(wordProgress));
+  if(options.sync!==false)scheduleCloudSync();
+}
+function studyStatsStorageKey(){
+  return `${STUDY_STATS_PREFIX}${currentUserId}`;
+}
+function loadStudyStats(){
+  if(!currentUserId)return {days:{}};
+  try{
+    const saved=JSON.parse(safeStorageGet(studyStatsStorageKey(),'{"days":{}}'));
+    return saved&&saved.days?{days:saved.days}:{days:{}};
+  }catch(e){
+    return {days:{}};
+  }
+}
+function trimStudyDays(days){
+  return Object.fromEntries(Object.entries(days||{}).sort(([a],[b])=>b.localeCompare(a)).slice(0,60));
+}
+function saveStudyStats(options={}){
+  if(!currentUserId)return;
+  studyStats={days:trimStudyDays(studyStats.days)};
+  safeStorageSet(studyStatsStorageKey(),JSON.stringify(studyStats));
+  if(options.sync!==false)scheduleCloudSync();
+}
 function formatQuizType(value){
   return value==="typing"?"주관식":"객관식";
 }
@@ -715,6 +833,7 @@ function renderTestHistory(){
     div.className="history-item";
     const score=`${item.score} / ${item.total}`;
     const retryText=item.retry?" · 오답 다시 풀기":"";
+    const reviewText=item.review?" · Today Review":"";
     const details=Array.isArray(item.questions)&&item.questions.length
       ? item.questions.map(q=>{
         const resultText=q.isCorrect?"정답":"오답";
@@ -734,7 +853,7 @@ function renderTestHistory(){
     div.innerHTML=`
       <summary>
         <div class="history-main">${escapeHtml(score)} <span class="meta-pill">${escapeHtml(formatQuizType(item.quizType))}</span><span class="meta-pill">${escapeHtml(formatDirection(item.direction))}</span></div>
-        <div class="history-meta">${escapeHtml(formatTestDate(item.date))} · ${escapeHtml(item.books||"선택 범위")}${retryText}</div>
+        <div class="history-meta">${escapeHtml(formatTestDate(item.date))} · ${escapeHtml(item.books||"선택 범위")}${retryText}${reviewText}</div>
       </summary>
       <div class="history-questions">${details}</div>
     `;
@@ -760,6 +879,7 @@ function recordTestHistoryIfReady(){
   if(latestResultRecorded||!latestResultData.length)return;
   const graded=latestResultData.filter(x=>x.isCorrect!==null).length;
   if(graded!==latestResultData.length)return;
+  recordStudyProgress(latestResultData);
   const correct=latestResultData.filter(x=>x.isCorrect===true).length;
   const total=latestResultData.length;
   const meta=currentQuizMeta||{};
@@ -773,6 +893,7 @@ function recordTestHistoryIfReady(){
     direction:meta.direction||direction,
     books:meta.books||getBookTitlesFromWords(latestResultData.map(x=>x.word)),
     retry:meta.retry===true,
+    review:meta.review===true,
     questions:latestResultData.map((x,i)=>({
       number:i+1,
       bookTitle:x.word.bookTitle,
@@ -805,6 +926,164 @@ function recordTestHistoryIfReady(){
 }
 function wordKey(word){
   return `${word.bookId}|${normalizeText(word.english)}|${normalizeText(word.korean)}`;
+}
+function progressWordKey(word){
+  return `${word.bookId}|${normalizeText(word.sourceEnglish||word.parentEnglish||word.english)}|${normalizeText(word.sourceKorean||word.korean)}`;
+}
+function getProgressForWord(word){
+  return wordProgress[progressWordKey(word)]||null;
+}
+function getMasteryStatus(word){
+  return getProgressForWord(word)?.status||"new";
+}
+function getMasteryLabel(status){
+  return status==="weak"?"Weak":status==="mastered"?"Mastered":status==="learning"?"Learning":"New";
+}
+function renderMasteryBadge(word){
+  const status=getMasteryStatus(word);
+  if(status==="new")return '<span class="mastery-badge learning">New</span>';
+  return `<span class="mastery-badge ${status}">${getMasteryLabel(status)}</span>`;
+}
+function localDateKey(date=new Date()){
+  const year=date.getFullYear();
+  const month=String(date.getMonth()+1).padStart(2,"0");
+  const day=String(date.getDate()).padStart(2,"0");
+  return `${year}-${month}-${day}`;
+}
+function dateOffsetKey(offset){
+  const date=new Date();
+  date.setHours(12,0,0,0);
+  date.setDate(date.getDate()+offset);
+  return localDateKey(date);
+}
+function recordStudyProgress(results){
+  const now=new Date();
+  const today=localDateKey(now);
+  let correctToday=0;
+  results.forEach(result=>{
+    const key=progressWordKey(result.word);
+    const previous=wordProgress[key]||{};
+    const correctCount=Number(previous.correctCount||0)+(result.isCorrect===true?1:0);
+    const wrongCount=Number(previous.wrongCount||0)+(result.isCorrect===false?1:0);
+    const consecutiveCorrect=result.isCorrect===true?Number(previous.consecutiveCorrect||0)+1:0;
+    const accuracy=correctCount/Math.max(1,correctCount+wrongCount);
+    let status="learning";
+    let intervalDays=1;
+    if(result.isCorrect===false){
+      status="weak";
+      intervalDays=1;
+    }else if(previous.status==="weak"&&consecutiveCorrect<2){
+      status="weak";
+      intervalDays=1;
+    }else if(consecutiveCorrect>=3&&accuracy>=.75){
+      status="mastered";
+      intervalDays=Math.min(30,Math.max(7,Number(previous.intervalDays||0)*2));
+    }else{
+      status="learning";
+      intervalDays=consecutiveCorrect>=2?3:1;
+    }
+    const nextReview=new Date(now);
+    nextReview.setDate(nextReview.getDate()+intervalDays);
+    wordProgress[key]={
+      correctCount,
+      wrongCount,
+      consecutiveCorrect,
+      status,
+      intervalDays,
+      lastReviewed:now.toISOString(),
+      nextReview:nextReview.toISOString()
+    };
+    if(result.isCorrect===true)correctToday++;
+  });
+  const currentDay=studyStats.days[today]||{correct:0,total:0};
+  studyStats.days[today]={
+    correct:Number(currentDay.correct||0)+correctToday,
+    total:Number(currentDay.total||0)+results.length
+  };
+  saveWordProgress({sync:false});
+  saveStudyStats({sync:false});
+  scheduleCloudSync();
+  renderHomeDashboard();
+}
+function getWordsByStatus(status){
+  const seen=new Set();
+  return wordList.filter(word=>{
+    const key=progressWordKey(word);
+    if(seen.has(key)||getMasteryStatus(word)!==status)return false;
+    seen.add(key);
+    return true;
+  });
+}
+function getDueReviewWords(){
+  const now=Date.now();
+  const seen=new Set();
+  return wordList.filter(word=>{
+    const key=progressWordKey(word);
+    const progress=wordProgress[key];
+    if(!progress||seen.has(key))return false;
+    const dueTime=new Date(progress.nextReview||0).getTime();
+    if(!dueTime||dueTime>now)return false;
+    seen.add(key);
+    return true;
+  }).sort((a,b)=>{
+    const aProgress=getProgressForWord(a),bProgress=getProgressForWord(b);
+    if(aProgress?.status!==bProgress?.status)return aProgress?.status==="weak"?-1:1;
+    return new Date(aProgress?.nextReview||0)-new Date(bProgress?.nextReview||0);
+  });
+}
+function getRecentAccuracy(){
+  let correct=0,total=0;
+  for(let offset=0;offset>-7;offset--){
+    const day=studyStats.days[dateOffsetKey(offset)];
+    correct+=Number(day?.correct||0);
+    total+=Number(day?.total||0);
+  }
+  return total?Math.round(correct/total*100):null;
+}
+function getStudyStreak(){
+  let offset=0;
+  if(!studyStats.days[dateOffsetKey(0)])offset=-1;
+  let streak=0;
+  while(studyStats.days[dateOffsetKey(offset)]){
+    streak++;
+    offset--;
+  }
+  return streak;
+}
+function renderHomeDashboard(){
+  if(!$('reviewCountStat'))return;
+  const due=getDueReviewWords();
+  const weak=getWordsByStatus("weak");
+  const accuracy=getRecentAccuracy();
+  const streak=getStudyStreak();
+  $('reviewCountStat').textContent=String(due.length);
+  $('weakCountStat').textContent=String(weak.length);
+  $('accuracyStat').textContent=accuracy===null?"-":`${accuracy}%`;
+  $('streakStat').textContent=String(streak);
+  $('todayTitle').textContent=due.length?`오늘 복습할 단어 ${due.length}개`:(Object.keys(wordProgress).length?"오늘 복습을 완료했습니다":"시험을 보면 복습 일정이 시작됩니다");
+  $('startReviewBtn').disabled=due.length===0;
+  $('startReviewBtn').textContent=due.length?`복습 ${Math.min(REVIEW_LIMIT,due.length)}개 시작`:"복습 완료";
+}
+function speakWord(word){
+  if(!('speechSynthesis' in window))return;
+  window.speechSynthesis.cancel();
+  const utterance=new SpeechSynthesisUtterance(String(word||""));
+  utterance.lang="en-US";
+  utterance.rate=.88;
+  window.speechSynthesis.speak(utterance);
+}
+function renderSpeakButton(word){
+  const button=document.createElement("button");
+  button.type="button";
+  button.className="speak-btn";
+  button.textContent="🔊";
+  button.title="발음 듣기";
+  button.setAttribute("aria-label",`${word} 발음 듣기`);
+  button.onclick=event=>{
+    event.stopPropagation();
+    speakWord(word);
+  };
+  return button;
 }
 function isStarred(word){
   return starredWordKeys.has(wordKey(word));
@@ -853,14 +1132,19 @@ function loginWithUserId(){
   currentUserId=value;
   safeStorageSet(CURRENT_USER_KEY,currentUserId);
   loadStarredWords();
+  wordProgress=loadWordProgress();
+  studyStats=loadStudyStats();
   updateUserBadge();
   hydrateCurrentUserFromCloud();
+  renderHomeDashboard();
   $("loginStatus").textContent="";
   showPage($("homePage"));
 }
 function changeUser(){
   currentUserId="";
   starredWordKeys=new Set();
+  wordProgress={};
+  studyStats={days:{}};
   $("userIdInput").value=safeStorageGet(CURRENT_USER_KEY,"");
   $("loginStatus").textContent="";
   updateUserBadge();
@@ -1344,6 +1628,7 @@ function renderRows(tableBody,words){
     r.appendChild(starCell);
     const synonymBadge=hasSynonyms(w)?`<span class="synonym-toggle">Syn</span>`:"";
     r.insertAdjacentHTML("beforeend",`<td>${i+1}</td><td>${escapeHtml(w.english)}${synonymBadge}</td><td>${escapeHtml(w.korean)}</td>`);
+    r.children[2].appendChild(renderSpeakButton(w.english));
     tableBody.appendChild(r);
     if(hasSynonyms(w)){
       const detailRow=renderSynonymDetailRow(tableBody,w,4);
@@ -1454,12 +1739,30 @@ function getStarredWords(){
   return unique.filter(word=>isStarred(word));
 }
 function renderMyVocabulary(){
-  const words=getStarredWords();
+  const starred=getStarredWords();
+  const weak=getWordsByStatus("weak");
+  const mastered=getWordsByStatus("mastered");
+  const groups={starred,weak,mastered};
+  const words=groups[activeMyVocabularyTab]||starred;
+  $("starredTabCount").textContent=String(starred.length);
+  $("weakTabCount").textContent=String(weak.length);
+  $("masteredTabCount").textContent=String(mastered.length);
+  document.querySelectorAll("[data-vocab-tab]").forEach(tab=>{
+    const selected=tab.dataset.vocabTab===activeMyVocabularyTab;
+    tab.classList.toggle("active",selected);
+    tab.setAttribute("aria-selected",selected?"true":"false");
+  });
+  const labels={starred:"Starred",weak:"Weak",mastered:"Mastered"};
   $("myVocabSummary").textContent=currentUserId
-    ? `ID ${currentUserId} · My Vocabulary · ${words.length}개`
+    ? `ID ${currentUserId} / ${labels[activeMyVocabularyTab]} / ${words.length}개`
     : "";
   $("myVocabTableArea").classList.toggle("hidden",words.length===0);
   $("myVocabEmpty").classList.toggle("hidden",words.length>0);
+  $("myVocabEmpty").textContent=activeMyVocabularyTab==="starred"
+    ? "별표 친 단어가 없습니다."
+    : activeMyVocabularyTab==="weak"
+      ? "아직 취약 단어가 없습니다. 틀린 단어는 자동으로 이곳에 모입니다."
+      : "아직 숙련 단어가 없습니다. 연속해서 맞히면 자동으로 이동합니다.";
   const body=$("myVocabTableBody");
   body.innerHTML="";
   words.forEach(word=>{
@@ -1472,12 +1775,14 @@ function renderMyVocabulary(){
     row.insertAdjacentHTML("beforeend",`
       <td>${escapeHtml(word.english)}${synonymBadge}</td>
       <td>${escapeHtml(word.korean)}</td>
+      <td>${renderMasteryBadge(word)}</td>
       <td>${escapeHtml(word.bookTitle)}</td>
       <td>Day ${word.day}</td>
     `);
+    row.children[1].appendChild(renderSpeakButton(word.english));
     body.appendChild(row);
     if(hasSynonyms(word)){
-      const detailRow=renderSynonymDetailRow(body,word,5);
+      const detailRow=renderSynonymDetailRow(body,word,6);
       wireSynonymToggle(row,detailRow,word);
     }
   });
@@ -1597,9 +1902,11 @@ function updateScope(){
 }
 function renderAll(){
   renderVocabulary();
+  renderMyVocabulary();
   renderAdmin();
   renderSelectors();
   renderTestHistory();
+  renderHomeDashboard();
 }
 function getMeaningFamilyKey(w){
   return normalizeText(w.sourceEnglish||w.parentEnglish||w.english);
@@ -1796,7 +2103,7 @@ function buildChoiceSet(current,pool){
   return shuffleArray([correct,...wrong]);
 }
 
-function startQuiz(custom=null){
+function startQuiz(custom=null,options={}){
   const status=$("testStatus");
   status.className="status";
   status.textContent="";
@@ -1814,7 +2121,7 @@ function startQuiz(custom=null){
     status.textContent="단어장과 Day를 하나 이상 선택하세요.";
     return;
   }
-  const choicePool=custom?[...activePool]:pool;
+  const choicePool=custom?(options.mode==="retry"&&activePool.length?[...activePool]:expandWordsForQuiz(wordList)):pool;
   const count=custom?pool.length:Number($("questionCount").value);
   if(!Number.isInteger(count)||count<1||count>pool.length){
     status.className="status error";
@@ -1839,7 +2146,8 @@ function startQuiz(custom=null){
     quizType,
     direction,
     books:getBookTitlesFromWords(questions),
-    retry:custom!==null
+    retry:options.mode==="retry",
+    review:options.mode==="review"
   };
   latestResultRecorded=false;
   currentIndex=0;
@@ -1858,6 +2166,7 @@ function renderQuestion(){
   $("questionMeta").append(`${q.bookTitle} · Day ${q.day}`);
   $("questionMeta").appendChild(renderStarButton(q,"inline-star"));
   $("questionWord").textContent=getQuestionText(q);
+  if(direction==="engToKor")$("questionWord").appendChild(renderSpeakButton(q.english));
   $("prevBtn").disabled=currentIndex===0;
   $("nextBtn").textContent=currentIndex===questions.length-1?"제출하기":"다음 문제";
   if(quizType==="multiple"){
@@ -2026,7 +2335,7 @@ function updateResultScoreAndRetry(){
 function retryWrongAnswers(){
   const wrong=latestResultData.filter(x=>x.isCorrect===false).map(x=>x.word);
   if(!wrong.length)return;
-  startQuiz(wrong);
+  startQuiz(wrong,{mode:"retry"});
 }
 
 $("loginBtn").onclick=fallbackLoginEarly;
@@ -2052,6 +2361,24 @@ $("vocabSearchInput").oninput=e=>{
 };
 $("testHistoryToggleBtn").onclick=toggleTestHistory;
 $("vocabBackBtn").onclick=backToVocabularyList;
+document.querySelectorAll("[data-vocab-tab]").forEach(tab=>{
+  tab.onclick=()=>{
+    activeMyVocabularyTab=tab.dataset.vocabTab||"starred";
+    renderMyVocabulary();
+  };
+});
+$("startReviewBtn").onclick=async()=>{
+  $("startReviewBtn").disabled=true;
+  await loadVocabularyBooks({silent:true});
+  const due=getDueReviewWords().slice(0,REVIEW_LIMIT);
+  if(!due.length){
+    renderHomeDashboard();
+    return;
+  }
+  $("quizType").value="multiple";
+  $("direction").value="engToKor";
+  startQuiz(due,{mode:"review"});
+};
 $("openMyVocabularyBtn").onclick=async()=>{
   showPage($("myVocabularyPage"));
   await loadVocabularyBooks({silent:true});
