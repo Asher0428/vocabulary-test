@@ -239,7 +239,7 @@
       </button>
       <button id="openMyVocabularyBtn" class="menu-btn" type="button" onclick="return fallbackOpenMyVocabulary(event)">
         <span class="menu-title">My Vocabulary</span>
-        <span class="menu-desc">별표, 취약, 숙련 단어를 모아봅니다.</span>
+        <span class="menu-desc">별표, 학습 중, 취약, 숙련 단어를 모아봅니다.</span>
       </button>
       <button id="openTestBtn" class="menu-btn" type="button" onclick="return fallbackOpenTest(event)">
         <span class="menu-title">Test</span>
@@ -304,6 +304,7 @@
     <div id="myVocabSummary" class="section-note"></div>
     <div class="vocab-tabs" role="tablist" aria-label="단어 분류">
       <button class="vocab-tab active" type="button" data-vocab-tab="starred" role="tab">Starred <span id="starredTabCount">0</span></button>
+      <button class="vocab-tab" type="button" data-vocab-tab="learning" role="tab">Learning <span id="learningTabCount">0</span></button>
       <button class="vocab-tab" type="button" data-vocab-tab="weak" role="tab">Weak <span id="weakTabCount">0</span></button>
       <button class="vocab-tab" type="button" data-vocab-tab="mastered" role="tab">Mastered <span id="masteredTabCount">0</span></button>
     </div>
@@ -1031,6 +1032,27 @@ function getDueReviewWords(){
     return new Date(aProgress?.nextReview||0)-new Date(bProgress?.nextReview||0);
   });
 }
+function getReviewableWords(){
+  const due=getDueReviewWords();
+  if(due.length)return due;
+
+  // 오늘 복습을 이미 완료했더라도, 한 번 이상 학습한 단어는
+  // 다시 복습할 수 있도록 전체 학습 단어를 반환한다.
+  const seen=new Set();
+  return wordList.filter(word=>{
+    const key=progressWordKey(word);
+    if(!wordProgress[key]||seen.has(key))return false;
+    seen.add(key);
+    return true;
+  }).sort((a,b)=>{
+    const aProgress=getProgressForWord(a),bProgress=getProgressForWord(b);
+    if(aProgress?.status!==bProgress?.status){
+      if(aProgress?.status==="weak")return -1;
+      if(bProgress?.status==="weak")return 1;
+    }
+    return new Date(aProgress?.nextReview||0)-new Date(bProgress?.nextReview||0);
+  });
+}
 function getRecentAccuracy(){
   let correct=0,total=0;
   for(let offset=0;offset>-7;offset--){
@@ -1053,6 +1075,7 @@ function getStudyStreak(){
 function renderHomeDashboard(){
   if(!$('reviewCountStat'))return;
   const due=getDueReviewWords();
+  const reviewable=getReviewableWords();
   const weak=getWordsByStatus("weak");
   const accuracy=getRecentAccuracy();
   const streak=getStudyStreak();
@@ -1060,9 +1083,17 @@ function renderHomeDashboard(){
   $('weakCountStat').textContent=String(weak.length);
   $('accuracyStat').textContent=accuracy===null?"-":`${accuracy}%`;
   $('streakStat').textContent=String(streak);
-  $('todayTitle').textContent=due.length?`오늘 복습할 단어 ${due.length}개`:(Object.keys(wordProgress).length?"오늘 복습을 완료했습니다":"시험을 보면 복습 일정이 시작됩니다");
-  $('startReviewBtn').disabled=due.length===0;
-  $('startReviewBtn').textContent=due.length?`복습 ${Math.min(REVIEW_LIMIT,due.length)}개 시작`:"복습 완료";
+  $('todayTitle').textContent=due.length
+    ? `오늘 복습할 단어 ${due.length}개`
+    : reviewable.length
+      ? "오늘 복습을 완료했습니다. 다시 복습할 수 있습니다"
+      : "시험을 보면 복습 일정이 시작됩니다";
+  $('startReviewBtn').disabled=reviewable.length===0;
+  $('startReviewBtn').textContent=due.length
+    ? `복습 ${Math.min(REVIEW_LIMIT,due.length)}개 시작`
+    : reviewable.length
+      ? "다시 복습하기"
+      : "복습 불가";
 }
 function speakWord(word){
   if(!('speechSynthesis' in window))return;
@@ -1740,11 +1771,13 @@ function getStarredWords(){
 }
 function renderMyVocabulary(){
   const starred=getStarredWords();
+  const learning=getWordsByStatus("learning");
   const weak=getWordsByStatus("weak");
   const mastered=getWordsByStatus("mastered");
-  const groups={starred,weak,mastered};
+  const groups={starred,learning,weak,mastered};
   const words=groups[activeMyVocabularyTab]||starred;
   $("starredTabCount").textContent=String(starred.length);
+  $("learningTabCount").textContent=String(learning.length);
   $("weakTabCount").textContent=String(weak.length);
   $("masteredTabCount").textContent=String(mastered.length);
   document.querySelectorAll("[data-vocab-tab]").forEach(tab=>{
@@ -1752,17 +1785,19 @@ function renderMyVocabulary(){
     tab.classList.toggle("active",selected);
     tab.setAttribute("aria-selected",selected?"true":"false");
   });
-  const labels={starred:"Starred",weak:"Weak",mastered:"Mastered"};
+  const labels={starred:"Starred",learning:"Learning",weak:"Weak",mastered:"Mastered"};
   $("myVocabSummary").textContent=currentUserId
     ? `ID ${currentUserId} / ${labels[activeMyVocabularyTab]} / ${words.length}개`
     : "";
   $("myVocabTableArea").classList.toggle("hidden",words.length===0);
   $("myVocabEmpty").classList.toggle("hidden",words.length>0);
-  $("myVocabEmpty").textContent=activeMyVocabularyTab==="starred"
-    ? "별표 친 단어가 없습니다."
-    : activeMyVocabularyTab==="weak"
-      ? "아직 취약 단어가 없습니다. 틀린 단어는 자동으로 이곳에 모입니다."
-      : "아직 숙련 단어가 없습니다. 연속해서 맞히면 자동으로 이동합니다.";
+  const emptyMessages={
+    starred:"별표 친 단어가 없습니다.",
+    learning:"아직 학습 중인 단어가 없습니다. 시험을 한 번 이상 진행하면 표시됩니다.",
+    weak:"아직 취약 단어가 없습니다. 틀린 단어는 자동으로 이곳에 모입니다.",
+    mastered:"아직 숙련 단어가 없습니다. 연속해서 맞히면 자동으로 이동합니다."
+  };
+  $("myVocabEmpty").textContent=emptyMessages[activeMyVocabularyTab]||emptyMessages.starred;
   const body=$("myVocabTableBody");
   body.innerHTML="";
   words.forEach(word=>{
@@ -2368,16 +2403,26 @@ document.querySelectorAll("[data-vocab-tab]").forEach(tab=>{
   };
 });
 $("startReviewBtn").onclick=async()=>{
-  $("startReviewBtn").disabled=true;
-  await loadVocabularyBooks({silent:true});
-  const due=getDueReviewWords().slice(0,REVIEW_LIMIT);
-  if(!due.length){
+  const button=$("startReviewBtn");
+  button.disabled=true;
+  try{
+    await loadVocabularyBooks({silent:true});
+    const due=getDueReviewWords();
+    const reviewWords=(due.length?due:getReviewableWords()).slice(0,REVIEW_LIMIT);
+    if(!reviewWords.length){
+      renderHomeDashboard();
+      return;
+    }
+    $("quizType").value="multiple";
+    $("direction").value="engToKor";
+    startQuiz(reviewWords,{mode:"review"});
+  }catch(error){
+    console.error(error);
+  }finally{
+    // 복습 완료 또는 오류 이후에도 버튼을 다시 사용할 수 있게 한다.
+    button.disabled=false;
     renderHomeDashboard();
-    return;
   }
-  $("quizType").value="multiple";
-  $("direction").value="engToKor";
-  startQuiz(due,{mode:"review"});
 };
 $("openMyVocabularyBtn").onclick=async()=>{
   showPage($("myVocabularyPage"));
